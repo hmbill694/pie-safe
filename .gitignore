@@ -3,3 +3,4 @@
 */manifest.toml
 backend/data/
 build/
+.envrc

@@ -1,0 +1,5 @@
+- [x] Step 1: Replace `backend/src/sql/schema.sql` with per-family DDL (14 tables: members, auth_tokens, providers, member_providers, appointments, appointment_reminders, medications, member_medications, allergies, immunizations, insurance_plans, member_insurance, emergency_contacts, documents)
+- [x] Step 2: Replace `backend/src/sql/queries.sql` with per-family CRUD queries (~80 named queries covering all 14 tables)
+- [x] Step 3: Create `backend/src/sql/registry_schema.sql` with central registry DDL (3 tables: families, accounts, registry_auth_tokens)
+- [x] Step 4: Create `backend/src/sql/registry_queries.sql` with registry CRUD queries (20 named queries)
+- [x] Step 5: Verified all 4 files — all 14 schema tables present, all 3 registry tables present, all required named queries confirmed present

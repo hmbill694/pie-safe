@@ -1,16 +1,14 @@
-import backend/sql
+import backend/config
+import backend/registry
 import gleam/bytes_tree
 import gleam/erlang/process
 import gleam/http/request.{type Request}
 import gleam/http/response.{type Response}
 import gleam/io
-import gleam/list
 import gleam/option.{None}
 import gleam/result
 import gleam/string
 import mist.{type Connection, type ResponseData}
-import parrot/dev
-import sqlight
 
 const index_html = "<!DOCTYPE html>
 <html lang=\"en\">
@@ -27,8 +25,8 @@ const index_html = "<!DOCTYPE html>
 </html>"
 
 pub fn main() {
-  use conn <- sqlight.with_connection("data/app.db")
-  run_startup_query(conn)
+  let config = config.load()
+  registry.init(config.registry_db_path)
 
   let not_found =
     response.new(404)
@@ -48,10 +46,12 @@ pub fn main() {
       }
     }
     |> mist.new
-    |> mist.port(3000)
+    |> mist.port(config.port)
     |> mist.start
 
-  io.println("Server running on http://localhost:3000")
+  io.println(
+    "Server running on http://localhost:" <> string.inspect(config.port),
+  )
   process.sleep_forever()
 }
 
@@ -79,39 +79,5 @@ fn guess_content_type(path: String) -> String {
         True -> "text/css"
         False -> "application/octet-stream"
       }
-  }
-}
-
-fn run_startup_query(conn: sqlight.Connection) -> Nil {
-  let #(sql_str, with, expecting) = sql.list_greetings()
-  let with = list.map(with, parrot_to_sqlight)
-  let rows = sqlight.query(sql_str, on: conn, with: with, expecting: expecting)
-  case rows {
-    Ok(greetings) -> {
-      io.println(
-        "Startup DB query: found "
-        <> string.inspect(list.length(greetings))
-        <> " greeting(s)",
-      )
-    }
-    Error(err) -> {
-      io.println("Startup DB query error: " <> string.inspect(err))
-    }
-  }
-}
-
-fn parrot_to_sqlight(param: dev.Param) -> sqlight.Value {
-  case param {
-    dev.ParamBool(x) -> sqlight.bool(x)
-    dev.ParamFloat(x) -> sqlight.float(x)
-    dev.ParamInt(x) -> sqlight.int(x)
-    dev.ParamString(x) -> sqlight.text(x)
-    dev.ParamBitArray(x) -> sqlight.blob(x)
-    dev.ParamNullable(x) -> sqlight.nullable(fn(a) { parrot_to_sqlight(a) }, x)
-    dev.ParamList(_) -> panic as "sqlite does not support list params"
-    dev.ParamDate(_) -> panic as "date params not supported for sqlite"
-    dev.ParamTimestamp(_) ->
-      panic as "timestamp params not supported for sqlite"
-    dev.ParamDynamic(_) -> panic as "dynamic params not supported"
   }
 }

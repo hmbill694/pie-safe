@@ -1,0 +1,2 @@
+export REGISTRY_DB_PATH=data/registry.db
+export PORT=3000
