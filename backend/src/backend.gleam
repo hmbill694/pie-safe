@@ -38,10 +38,17 @@ pub fn main() {
     static_supervisor.new(static_supervisor.OneForOne)
     |> static_supervisor.add(
       supervision.worker(fn() {
-        registry_actor.start(cfg.registry_db_path, registry_name)
+        registry_actor.start(
+          cfg.registry_db_path,
+          registry_name,
+          cfg.registry_migrations_dir,
+        )
       }),
     )
-    |> static_supervisor.add(family_db_supervisor.supervised(supervisor_name))
+    |> static_supervisor.add(family_db_supervisor.supervised(
+      supervisor_name,
+      cfg.family_migrations_dir,
+    ))
     |> static_supervisor.start
 
   let _evictor_pid = db_evictor.start(cfg, supervisor_name)

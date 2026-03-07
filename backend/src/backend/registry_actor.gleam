@@ -1,4 +1,5 @@
 import backend/db
+import backend/migrations
 import gleam/erlang/process.{type Subject}
 import gleam/io
 import gleam/option.{type Option}
@@ -7,37 +8,6 @@ import gleam/otp/supervision
 import gleam/result
 import registry/sql as registry_sql
 import sqlight
-
-const registry_ddl = "
-PRAGMA foreign_keys = ON;
-
-CREATE TABLE IF NOT EXISTS families (
-  id         TEXT PRIMARY KEY,
-  name       TEXT NOT NULL,
-  db_path    TEXT NOT NULL UNIQUE,
-  status     TEXT NOT NULL DEFAULT 'active',
-  created_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS accounts (
-  id            INTEGER PRIMARY KEY,
-  family_id     TEXT NOT NULL REFERENCES families(id) ON DELETE CASCADE,
-  email         TEXT NOT NULL UNIQUE,
-  role          TEXT NOT NULL DEFAULT 'member',
-  created_at    TEXT NOT NULL,
-  last_login_at TEXT
-);
-
-CREATE TABLE IF NOT EXISTS registry_auth_tokens (
-  id         INTEGER PRIMARY KEY,
-  account_id INTEGER NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
-  token_hash TEXT NOT NULL,
-  token_type TEXT NOT NULL,
-  expires_at TEXT NOT NULL,
-  used_at    TEXT,
-  created_at TEXT NOT NULL
-);
-"
 
 pub type Message {
   GetFamily(
@@ -77,17 +47,19 @@ type State {
 pub fn supervised(
   db_path: String,
   name: process.Name(Message),
+  migrations_dir: String,
 ) -> supervision.ChildSpecification(Subject(Message)) {
-  supervision.worker(fn() { start(db_path, name) })
+  supervision.worker(fn() { start(db_path, name, migrations_dir) })
 }
 
 pub fn start(
   db_path: String,
   name: process.Name(Message),
+  migrations_dir: String,
 ) -> actor.StartResult(Subject(Message)) {
   actor.new_with_initialiser(5000, fn(subject) {
     use conn <- result.try(open_db(db_path))
-    use _ <- result.try(run_ddl(conn))
+    use _ <- result.try(migrations.run(conn, migrations_dir))
     actor.initialised(State(conn:))
     |> actor.returning(subject)
     |> Ok
@@ -101,11 +73,6 @@ fn open_db(db_path: String) -> Result(sqlight.Connection, String) {
   io.println("Opening registry DB at: " <> db_path)
   sqlight.open(db_path)
   |> result.map_error(fn(err) { "Failed to open registry DB: " <> err.message })
-}
-
-fn run_ddl(conn: sqlight.Connection) -> Result(Nil, String) {
-  sqlight.exec(registry_ddl, on: conn)
-  |> result.map_error(fn(err) { "Failed to run registry DDL: " <> err.message })
 }
 
 fn handle_message(state: State, message: Message) -> actor.Next(State, Message) {

@@ -1,2 +1,4 @@
 export REGISTRY_DB_PATH=data/registry.db
+export REGISTRY_MIGRATIONS_DIR=priv/migrations/registry
+export FAMILY_MIGRATIONS_DIR=priv/migrations/family
 export PORT=3000

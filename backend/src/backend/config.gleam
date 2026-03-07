@@ -4,6 +4,8 @@ import gleam/int
 pub type Config {
   Config(
     registry_db_path: String,
+    registry_migrations_dir: String,
+    family_migrations_dir: String,
     port: Int,
     db_idle_ttl_ms: Int,
     eviction_check_interval_ms: Int,
@@ -15,6 +17,18 @@ pub fn load() -> Config {
     Ok(v) -> v
     Error(Nil) ->
       panic as "Missing required environment variable: REGISTRY_DB_PATH"
+  }
+
+  let registry_migrations_dir = case envoy.get("REGISTRY_MIGRATIONS_DIR") {
+    Ok(v) -> v
+    Error(Nil) ->
+      panic as "Missing required environment variable: REGISTRY_MIGRATIONS_DIR"
+  }
+
+  let family_migrations_dir = case envoy.get("FAMILY_MIGRATIONS_DIR") {
+    Ok(v) -> v
+    Error(Nil) ->
+      panic as "Missing required environment variable: FAMILY_MIGRATIONS_DIR"
   }
 
   let port_str = case envoy.get("PORT") {
@@ -31,7 +45,14 @@ pub fn load() -> Config {
   let eviction_check_interval_ms =
     load_optional_int("EVICTION_CHECK_INTERVAL_MS", 60_000)
 
-  Config(registry_db_path:, port:, db_idle_ttl_ms:, eviction_check_interval_ms:)
+  Config(
+    registry_db_path:,
+    registry_migrations_dir:,
+    family_migrations_dir:,
+    port:,
+    db_idle_ttl_ms:,
+    eviction_check_interval_ms:,
+  )
 }
 
 fn load_optional_int(var: String, default: Int) -> Int {

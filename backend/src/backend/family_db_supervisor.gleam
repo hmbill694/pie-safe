@@ -21,21 +21,30 @@ type State {
   State(
     actors: Dict(String, Subject(family_db_actor.Message)),
     selector: process.Selector(Message),
+    family_migrations_dir: String,
   )
 }
 
 pub fn supervised(
   name: process.Name(Message),
+  family_migrations_dir: String,
 ) -> supervision.ChildSpecification(Subject(Message)) {
-  supervision.worker(fn() { start(name) })
+  supervision.worker(fn() { start(name, family_migrations_dir) })
 }
 
-pub fn start(name: process.Name(Message)) -> actor.StartResult(Subject(Message)) {
+pub fn start(
+  name: process.Name(Message),
+  family_migrations_dir: String,
+) -> actor.StartResult(Subject(Message)) {
   actor.new_with_initialiser(5000, fn(subject) {
     let selector =
       process.new_selector()
       |> process.select(subject)
-    actor.initialised(State(actors: dict.new(), selector:))
+    actor.initialised(State(
+      actors: dict.new(),
+      selector:,
+      family_migrations_dir:,
+    ))
     |> actor.returning(subject)
     |> actor.selecting(selector)
     |> Ok
@@ -54,7 +63,13 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
           actor.continue(state)
         }
         Error(Nil) -> {
-          case start_family_actor(family_id, registry_name) {
+          case
+            start_family_actor(
+              family_id,
+              registry_name,
+              state.family_migrations_dir,
+            )
+          {
             Error(err) -> {
               process.send(reply_to, Error(err))
               actor.continue(state)
@@ -67,7 +82,9 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
                   ActorDown(family_id)
                 })
               process.send(reply_to, Ok(subject))
-              actor.continue(State(actors: new_actors, selector: new_selector))
+              actor.continue(
+                State(..state, actors: new_actors, selector: new_selector),
+              )
               |> actor.with_selector(new_selector)
             }
           }
@@ -90,8 +107,9 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
 fn start_family_actor(
   family_id: String,
   registry_name: process.Name(registry_actor.Message),
+  migrations_dir: String,
 ) -> Result(#(Subject(family_db_actor.Message), Pid), String) {
-  case family_db_actor.start(family_id, registry_name) {
+  case family_db_actor.start(family_id, registry_name, migrations_dir) {
     Ok(started) -> Ok(#(started.data, started.pid))
     Error(actor.InitTimeout) -> Error("Family actor init timed out")
     Error(actor.InitFailed(reason)) ->
