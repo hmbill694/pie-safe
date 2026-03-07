@@ -5,17 +5,444 @@ import gleam/dynamic/decode
 import gleam/option.{type Option}
 import parrot/dev
 
-pub type ListGreetings {
-  ListGreetings(id: Int, message: String)
+pub type ListMembers {
+  ListMembers(
+    id: Int,
+    email: Option(String),
+    first_name: String,
+    last_name: String,
+    date_of_birth: Option(String),
+    role: String,
+    is_managed: Int,
+    created_at: String,
+    updated_at: String,
+  )
 }
 
-pub fn list_greetings() {
-  let sql = "SELECT id, message FROM greetings"
-  #(sql, [], list_greetings_decoder())
+pub fn list_members() {
+  let sql =
+    "SELECT id, email, first_name, last_name, date_of_birth, role, is_managed, created_at, updated_at\nFROM members"
+  #(sql, [], list_members_decoder())
 }
 
-pub fn list_greetings_decoder() -> decode.Decoder(ListGreetings) {
+pub fn list_members_decoder() -> decode.Decoder(ListMembers) {
   use id <- decode.field(0, decode.int)
-  use message <- decode.field(1, decode.string)
-  decode.success(ListGreetings(id:, message:))
+  use email <- decode.field(1, decode.optional(decode.string))
+  use first_name <- decode.field(2, decode.string)
+  use last_name <- decode.field(3, decode.string)
+  use date_of_birth <- decode.field(4, decode.optional(decode.string))
+  use role <- decode.field(5, decode.string)
+  use is_managed <- decode.field(6, decode.int)
+  use created_at <- decode.field(7, decode.string)
+  use updated_at <- decode.field(8, decode.string)
+  decode.success(ListMembers(
+    id:,
+    email:,
+    first_name:,
+    last_name:,
+    date_of_birth:,
+    role:,
+    is_managed:,
+    created_at:,
+    updated_at:,
+  ))
+}
+
+pub type GetMember {
+  GetMember(
+    id: Int,
+    email: Option(String),
+    first_name: String,
+    last_name: String,
+    date_of_birth: Option(String),
+    role: String,
+    is_managed: Int,
+    created_at: String,
+    updated_at: String,
+  )
+}
+
+pub fn get_member(id: Int) {
+  let sql =
+    "SELECT id, email, first_name, last_name, date_of_birth, role, is_managed, created_at, updated_at\nFROM members\nWHERE id = ?"
+  #(sql, [dev.ParamInt(id)], get_member_decoder())
+}
+
+pub fn get_member_decoder() -> decode.Decoder(GetMember) {
+  use id <- decode.field(0, decode.int)
+  use email <- decode.field(1, decode.optional(decode.string))
+  use first_name <- decode.field(2, decode.string)
+  use last_name <- decode.field(3, decode.string)
+  use date_of_birth <- decode.field(4, decode.optional(decode.string))
+  use role <- decode.field(5, decode.string)
+  use is_managed <- decode.field(6, decode.int)
+  use created_at <- decode.field(7, decode.string)
+  use updated_at <- decode.field(8, decode.string)
+  decode.success(GetMember(
+    id:,
+    email:,
+    first_name:,
+    last_name:,
+    date_of_birth:,
+    role:,
+    is_managed:,
+    created_at:,
+    updated_at:,
+  ))
+}
+
+pub type GetMemberByEmail {
+  GetMemberByEmail(
+    id: Int,
+    email: Option(String),
+    first_name: String,
+    last_name: String,
+    date_of_birth: Option(String),
+    role: String,
+    is_managed: Int,
+    created_at: String,
+    updated_at: String,
+  )
+}
+
+pub fn get_member_by_email(email: String) {
+  let sql =
+    "SELECT id, email, first_name, last_name, date_of_birth, role, is_managed, created_at, updated_at\nFROM members\nWHERE email = ?"
+  #(sql, [dev.ParamString(email)], get_member_by_email_decoder())
+}
+
+pub fn get_member_by_email_decoder() -> decode.Decoder(GetMemberByEmail) {
+  use id <- decode.field(0, decode.int)
+  use email <- decode.field(1, decode.optional(decode.string))
+  use first_name <- decode.field(2, decode.string)
+  use last_name <- decode.field(3, decode.string)
+  use date_of_birth <- decode.field(4, decode.optional(decode.string))
+  use role <- decode.field(5, decode.string)
+  use is_managed <- decode.field(6, decode.int)
+  use created_at <- decode.field(7, decode.string)
+  use updated_at <- decode.field(8, decode.string)
+  decode.success(GetMemberByEmail(
+    id:,
+    email:,
+    first_name:,
+    last_name:,
+    date_of_birth:,
+    role:,
+    is_managed:,
+    created_at:,
+    updated_at:,
+  ))
+}
+
+pub fn insert_member(
+  email: Option(String),
+  first_name: String,
+  last_name: String,
+  date_of_birth: Option(String),
+  role: String,
+  is_managed: Int,
+  created_at: String,
+  updated_at: String,
+) {
+  let sql =
+    "INSERT INTO members (email, first_name, last_name, date_of_birth, role, is_managed, created_at, updated_at)\nVALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+  #(
+    sql,
+    [
+      dev.ParamNullable(option.map(email, fn(v) { dev.ParamString(v) })),
+      dev.ParamString(first_name),
+      dev.ParamString(last_name),
+      dev.ParamNullable(option.map(date_of_birth, fn(v) { dev.ParamString(v) })),
+      dev.ParamString(role),
+      dev.ParamInt(is_managed),
+      dev.ParamString(created_at),
+      dev.ParamString(updated_at),
+    ],
+    "",
+  )
+}
+
+pub fn update_member(
+  email: Option(String),
+  first_name: String,
+  last_name: String,
+  date_of_birth: Option(String),
+  role: String,
+  is_managed: Int,
+  updated_at: String,
+  id: Int,
+) {
+  let sql =
+    "UPDATE members\nSET email = ?, first_name = ?, last_name = ?, date_of_birth = ?, role = ?, is_managed = ?, updated_at = ?\nWHERE id = ?"
+  #(
+    sql,
+    [
+      dev.ParamNullable(option.map(email, fn(v) { dev.ParamString(v) })),
+      dev.ParamString(first_name),
+      dev.ParamString(last_name),
+      dev.ParamNullable(option.map(date_of_birth, fn(v) { dev.ParamString(v) })),
+      dev.ParamString(role),
+      dev.ParamInt(is_managed),
+      dev.ParamString(updated_at),
+      dev.ParamInt(id),
+    ],
+    "",
+  )
+}
+
+pub fn delete_member(id: Int) {
+  let sql = "DELETE FROM members WHERE id = ?"
+  #(sql, [dev.ParamInt(id)], "")
+}
+
+pub type ListAuthTokensByMember {
+  ListAuthTokensByMember(
+    id: Int,
+    member_id: Int,
+    token_hash: String,
+    token_type: String,
+    expires_at: String,
+    used_at: Option(String),
+    created_at: String,
+  )
+}
+
+pub fn list_auth_tokens_by_member(member_id: Int) {
+  let sql =
+    "SELECT id, member_id, token_hash, token_type, expires_at, used_at, created_at\nFROM auth_tokens\nWHERE member_id = ?"
+  #(sql, [dev.ParamInt(member_id)], list_auth_tokens_by_member_decoder())
+}
+
+pub fn list_auth_tokens_by_member_decoder() -> decode.Decoder(
+  ListAuthTokensByMember,
+) {
+  use id <- decode.field(0, decode.int)
+  use member_id <- decode.field(1, decode.int)
+  use token_hash <- decode.field(2, decode.string)
+  use token_type <- decode.field(3, decode.string)
+  use expires_at <- decode.field(4, decode.string)
+  use used_at <- decode.field(5, decode.optional(decode.string))
+  use created_at <- decode.field(6, decode.string)
+  decode.success(ListAuthTokensByMember(
+    id:,
+    member_id:,
+    token_hash:,
+    token_type:,
+    expires_at:,
+    used_at:,
+    created_at:,
+  ))
+}
+
+pub type GetAuthTokenByHash {
+  GetAuthTokenByHash(
+    id: Int,
+    member_id: Int,
+    token_hash: String,
+    token_type: String,
+    expires_at: String,
+    used_at: Option(String),
+    created_at: String,
+  )
+}
+
+pub fn get_auth_token_by_hash(token_hash: String) {
+  let sql =
+    "SELECT id, member_id, token_hash, token_type, expires_at, used_at, created_at\nFROM auth_tokens\nWHERE token_hash = ?"
+  #(sql, [dev.ParamString(token_hash)], get_auth_token_by_hash_decoder())
+}
+
+pub fn get_auth_token_by_hash_decoder() -> decode.Decoder(GetAuthTokenByHash) {
+  use id <- decode.field(0, decode.int)
+  use member_id <- decode.field(1, decode.int)
+  use token_hash <- decode.field(2, decode.string)
+  use token_type <- decode.field(3, decode.string)
+  use expires_at <- decode.field(4, decode.string)
+  use used_at <- decode.field(5, decode.optional(decode.string))
+  use created_at <- decode.field(6, decode.string)
+  decode.success(GetAuthTokenByHash(
+    id:,
+    member_id:,
+    token_hash:,
+    token_type:,
+    expires_at:,
+    used_at:,
+    created_at:,
+  ))
+}
+
+pub fn insert_auth_token(
+  member_id: Int,
+  token_hash: String,
+  token_type: String,
+  expires_at: String,
+  used_at: Option(String),
+  created_at: String,
+) {
+  let sql =
+    "INSERT INTO auth_tokens (member_id, token_hash, token_type, expires_at, used_at, created_at)\nVALUES (?, ?, ?, ?, ?, ?)"
+  #(
+    sql,
+    [
+      dev.ParamInt(member_id),
+      dev.ParamString(token_hash),
+      dev.ParamString(token_type),
+      dev.ParamString(expires_at),
+      dev.ParamNullable(option.map(used_at, fn(v) { dev.ParamString(v) })),
+      dev.ParamString(created_at),
+    ],
+    "",
+  )
+}
+
+pub fn mark_auth_token_used(used_at: String, id: Int) {
+  let sql = "UPDATE auth_tokens SET used_at = ? WHERE id = ?"
+  #(sql, [dev.ParamString(used_at), dev.ParamInt(id)], "")
+}
+
+pub fn delete_auth_token(id: Int) {
+  let sql = "DELETE FROM auth_tokens WHERE id = ?"
+  #(sql, [dev.ParamInt(id)], "")
+}
+
+pub fn delete_expired_auth_tokens(expires_at: String) {
+  let sql = "DELETE FROM auth_tokens WHERE expires_at < ?"
+  #(sql, [dev.ParamString(expires_at)], "")
+}
+
+pub type ListProviders {
+  ListProviders(
+    id: Int,
+    name: String,
+    specialty: Option(String),
+    phone: Option(String),
+    address: Option(String),
+    notes: Option(String),
+    created_at: String,
+    updated_at: String,
+  )
+}
+
+pub fn list_providers() {
+  let sql =
+    "SELECT id, name, specialty, phone, address, notes, created_at, updated_at\nFROM providers"
+  #(sql, [], list_providers_decoder())
+}
+
+pub fn list_providers_decoder() -> decode.Decoder(ListProviders) {
+  use id <- decode.field(0, decode.int)
+  use name <- decode.field(1, decode.string)
+  use specialty <- decode.field(2, decode.optional(decode.string))
+  use phone <- decode.field(3, decode.optional(decode.string))
+  use address <- decode.field(4, decode.optional(decode.string))
+  use notes <- decode.field(5, decode.optional(decode.string))
+  use created_at <- decode.field(6, decode.string)
+  use updated_at <- decode.field(7, decode.string)
+  decode.success(ListProviders(
+    id:,
+    name:,
+    specialty:,
+    phone:,
+    address:,
+    notes:,
+    created_at:,
+    updated_at:,
+  ))
+}
+
+pub type GetProvider {
+  GetProvider(
+    id: Int,
+    name: String,
+    specialty: Option(String),
+    phone: Option(String),
+    address: Option(String),
+    notes: Option(String),
+    created_at: String,
+    updated_at: String,
+  )
+}
+
+pub fn get_provider(id: Int) {
+  let sql =
+    "SELECT id, name, specialty, phone, address, notes, created_at, updated_at\nFROM providers\nWHERE id = ?"
+  #(sql, [dev.ParamInt(id)], get_provider_decoder())
+}
+
+pub fn get_provider_decoder() -> decode.Decoder(GetProvider) {
+  use id <- decode.field(0, decode.int)
+  use name <- decode.field(1, decode.string)
+  use specialty <- decode.field(2, decode.optional(decode.string))
+  use phone <- decode.field(3, decode.optional(decode.string))
+  use address <- decode.field(4, decode.optional(decode.string))
+  use notes <- decode.field(5, decode.optional(decode.string))
+  use created_at <- decode.field(6, decode.string)
+  use updated_at <- decode.field(7, decode.string)
+  decode.success(GetProvider(
+    id:,
+    name:,
+    specialty:,
+    phone:,
+    address:,
+    notes:,
+    created_at:,
+    updated_at:,
+  ))
+}
+
+pub fn insert_provider(
+  name: String,
+  specialty: Option(String),
+  phone: Option(String),
+  address: Option(String),
+  notes: Option(String),
+  created_at: String,
+  updated_at: String,
+) {
+  let sql =
+    "INSERT INTO providers (name, specialty, phone, address, notes, created_at, updated_at)\nVALUES (?, ?, ?, ?, ?, ?, ?)"
+  #(
+    sql,
+    [
+      dev.ParamString(name),
+      dev.ParamNullable(option.map(specialty, fn(v) { dev.ParamString(v) })),
+      dev.ParamNullable(option.map(phone, fn(v) { dev.ParamString(v) })),
+      dev.ParamNullable(option.map(address, fn(v) { dev.ParamString(v) })),
+      dev.ParamNullable(option.map(notes, fn(v) { dev.ParamString(v) })),
+      dev.ParamString(created_at),
+      dev.ParamString(updated_at),
+    ],
+    "",
+  )
+}
+
+pub fn update_provider(
+  name: String,
+  specialty: Option(String),
+  phone: Option(String),
+  address: Option(String),
+  notes: Option(String),
+  updated_at: String,
+  id: Int,
+) {
+  let sql =
+    "UPDATE providers\nSET name = ?, specialty = ?, phone = ?, address = ?, notes = ?, updated_at = ?\nWHERE id = ?"
+  #(
+    sql,
+    [
+      dev.ParamString(name),
+      dev.ParamNullable(option.map(specialty, fn(v) { dev.ParamString(v) })),
+      dev.ParamNullable(option.map(phone, fn(v) { dev.ParamString(v) })),
+      dev.ParamNullable(option.map(address, fn(v) { dev.ParamString(v) })),
+      dev.ParamNullable(option.map(notes, fn(v) { dev.ParamString(v) })),
+      dev.ParamString(updated_at),
+      dev.ParamInt(id),
+    ],
+    "",
+  )
+}
+
+pub fn delete_provider(id: Int) {
+  let sql = "DELETE FROM providers WHERE id = ?"
+  #(sql, [dev.ParamInt(id)], "")
 }

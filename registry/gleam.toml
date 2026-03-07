@@ -1,0 +1,9 @@
+name = "registry"
+version = "1.0.0"
+description = "Registry DB SQL layer for pie-safe"
+target = "erlang"
+
+[dependencies]
+gleam_stdlib = ">= 0.34.0 and < 2.0.0"
+sqlight = ">= 1.0.3 and < 2.0.0"
+parrot = ">= 2.2.1 and < 3.0.0"
