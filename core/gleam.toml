@@ -1,0 +1,9 @@
+name = "core"
+version = "1.0.0"
+description = "Shared types for pie-safe"
+
+[dependencies]
+gleam_stdlib = ">= 0.34.0 and < 2.0.0"
+
+[dev-dependencies]
+gleeunit = ">= 1.0.0 and < 2.0.0"
