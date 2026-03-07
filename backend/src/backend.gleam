@@ -1,9 +1,11 @@
+import backend/auth
 import backend/config
 import backend/db_evictor
 import backend/family_db_supervisor
 import backend/registry_actor
 import gleam/bytes_tree
 import gleam/erlang/process
+import gleam/http
 import gleam/http/request.{type Request}
 import gleam/http/response.{type Response}
 import gleam/io
@@ -53,6 +55,8 @@ pub fn main() {
 
   let _evictor_pid = db_evictor.start(cfg, supervisor_name)
 
+  let ctx = auth.AuthCtx(cfg:, registry_name:, supervisor_name:)
+
   let not_found =
     response.new(404)
     |> response.set_body(mist.Bytes(bytes_tree.from_string("Not found")))
@@ -66,6 +70,30 @@ pub fn main() {
           |> response.set_body(mist.Bytes(bytes_tree.from_string(index_html)))
 
         ["static", ..rest] -> serve_static(rest, not_found)
+
+        ["api", "auth", "register"] ->
+          case req.method {
+            http.Post -> auth.handle_register(req, ctx)
+            _ -> not_found
+          }
+
+        ["api", "auth", "magic-link"] ->
+          case req.method {
+            http.Post -> auth.handle_magic_link(req, ctx)
+            _ -> not_found
+          }
+
+        ["api", "auth", "verify"] ->
+          case req.method {
+            http.Get -> auth.handle_verify(req, ctx)
+            _ -> not_found
+          }
+
+        ["api", "auth", "me"] ->
+          case req.method {
+            http.Get -> auth.handle_me(req, ctx)
+            _ -> not_found
+          }
 
         // SPA fallback — serve index.html for all non-static routes
         // so the Lustre router can handle /sign-in, /sign-up, /home, etc.

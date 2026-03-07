@@ -38,6 +38,35 @@ pub type Message {
     created_at: String,
     last_login_at: Option(String),
   )
+  GetAccount(
+    reply_to: Subject(Result(Option(registry_sql.GetAccount), String)),
+    id: Int,
+  )
+  InsertRegistryAuthToken(
+    reply_to: Subject(Result(Nil, String)),
+    account_id: Int,
+    token_hash: String,
+    token_type: String,
+    expires_at: String,
+    used_at: Option(String),
+    created_at: String,
+  )
+  GetRegistryAuthTokenByHash(
+    reply_to: Subject(
+      Result(Option(registry_sql.GetRegistryAuthTokenByHash), String),
+    ),
+    token_hash: String,
+  )
+  MarkRegistryAuthTokenUsed(
+    reply_to: Subject(Result(Nil, String)),
+    used_at: String,
+    id: Int,
+  )
+  UpdateAccountLastLogin(
+    reply_to: Subject(Result(Nil, String)),
+    last_login_at: String,
+    id: Int,
+  )
 }
 
 type State {
@@ -144,6 +173,80 @@ fn handle_message(state: State, message: Message) -> actor.Next(State, Message) 
             created_at,
             last_login_at,
           ),
+        )
+      process.send(reply_to, result)
+      actor.continue(state)
+    }
+
+    GetAccount(reply_to:, id:) -> {
+      let result =
+        db.exec_query(state.conn, registry_sql.get_account(id))
+        |> result.map(fn(rows) {
+          case rows {
+            [row, ..] -> option.Some(row)
+            [] -> option.None
+          }
+        })
+      process.send(reply_to, result)
+      actor.continue(state)
+    }
+
+    InsertRegistryAuthToken(
+      reply_to:,
+      account_id:,
+      token_hash:,
+      token_type:,
+      expires_at:,
+      used_at:,
+      created_at:,
+    ) -> {
+      let result =
+        db.exec_command(
+          state.conn,
+          registry_sql.insert_registry_auth_token(
+            account_id,
+            token_hash,
+            token_type,
+            expires_at,
+            used_at,
+            created_at,
+          ),
+        )
+      process.send(reply_to, result)
+      actor.continue(state)
+    }
+
+    GetRegistryAuthTokenByHash(reply_to:, token_hash:) -> {
+      let result =
+        db.exec_query(
+          state.conn,
+          registry_sql.get_registry_auth_token_by_hash(token_hash),
+        )
+        |> result.map(fn(rows) {
+          case rows {
+            [row, ..] -> option.Some(row)
+            [] -> option.None
+          }
+        })
+      process.send(reply_to, result)
+      actor.continue(state)
+    }
+
+    MarkRegistryAuthTokenUsed(reply_to:, used_at:, id:) -> {
+      let result =
+        db.exec_command(
+          state.conn,
+          registry_sql.mark_registry_auth_token_used(used_at, id),
+        )
+      process.send(reply_to, result)
+      actor.continue(state)
+    }
+
+    UpdateAccountLastLogin(reply_to:, last_login_at:, id:) -> {
+      let result =
+        db.exec_command(
+          state.conn,
+          registry_sql.update_account_last_login(last_login_at, id),
         )
       process.send(reply_to, result)
       actor.continue(state)

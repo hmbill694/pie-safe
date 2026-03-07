@@ -9,6 +9,7 @@ pub type Config {
     port: Int,
     db_idle_ttl_ms: Int,
     eviction_check_interval_ms: Int,
+    jwt_secret: String,
   )
 }
 
@@ -45,6 +46,11 @@ pub fn load() -> Config {
   let eviction_check_interval_ms =
     load_optional_int("EVICTION_CHECK_INTERVAL_MS", 60_000)
 
+  let jwt_secret = case envoy.get("JWT_SECRET") {
+    Ok(v) -> v
+    Error(Nil) -> panic as "Missing required environment variable: JWT_SECRET"
+  }
+
   Config(
     registry_db_path:,
     registry_migrations_dir:,
@@ -52,6 +58,7 @@ pub fn load() -> Config {
     port:,
     db_idle_ttl_ms:,
     eviction_check_interval_ms:,
+    jwt_secret:,
   )
 }
 
