@@ -1,3 +1,4 @@
+import ffi/browser
 import gleam/int
 import gleam/json
 import lustre/attribute
@@ -60,7 +61,7 @@ pub fn update(model: Model, msg: Msg) -> #(Model, Effect(Msg)) {
       #(
         Model(..model, state: Loading),
         lustre_http.post(
-          "/api/auth/register",
+          browser.origin() <> "/api/auth/register",
           body,
           lustre_http.expect_anything(ApiResponse),
         ),

@@ -15,8 +15,8 @@ gleam_json = ">= 1.0.0 and < 4.0.0"
 gleeunit = ">= 1.0.0 and < 2.0.0"
 lustre_dev_tools = ">= 2.3.4 and < 3.0.0"
 
-[lustre.build]
+[tools.lustre.build]
 outdir = "../backend/priv/static"
 
-[lustre.dev]
-proxy = { from = "/", to = "http://localhost:3000" }
+[tools.lustre.dev]
+proxy = { from = "/api", to = "http://localhost:3000/api" }

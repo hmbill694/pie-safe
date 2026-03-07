@@ -1,57 +1,59 @@
-import ffi/local_storage
-import gleam/bit_array
+import ffi/browser
 import gleam/dynamic/decode
-import gleam/json
-import gleam/list
 import gleam/option.{None}
-import gleam/result
-import gleam/string
 import lustre/attribute
 import lustre/effect.{type Effect}
 import lustre/element.{type Element}
 import lustre/element/html
 import lustre/event
+import lustre_http
 import modem
 
 pub type Model {
+  Loading
   Authenticated(email: String)
   Unauthenticated
 }
 
+pub type SessionData {
+  SessionData(email: String, role: String)
+}
+
 pub type Msg {
-  GotToken(Result(String, Nil))
+  GotSession(Result(SessionData, lustre_http.HttpError))
   SignOut
 }
 
 pub fn init() -> #(Model, Effect(Msg)) {
-  let effect =
-    effect.from(fn(dispatch) {
-      dispatch(GotToken(local_storage.get_item("pie_safe_token")))
-    })
-  #(Unauthenticated, effect)
+  #(Loading, check_session_effect())
+}
+
+fn check_session_effect() -> Effect(Msg) {
+  let decoder = {
+    use email <- decode.field("email", decode.string)
+    use role <- decode.field("role", decode.string)
+    decode.success(SessionData(email:, role:))
+  }
+  lustre_http.get(
+    browser.origin() <> "/api/auth/me",
+    lustre_http.expect_json(decoder, GotSession),
+  )
 }
 
 pub fn update(model: Model, msg: Msg) -> #(Model, Effect(Msg)) {
   case msg {
-    GotToken(Ok(token)) -> {
-      case decode_email(token) {
-        Ok(email) -> #(Authenticated(email), effect.none())
-        Error(_) -> #(Unauthenticated, modem.replace("/sign-in", None, None))
-      }
-    }
-    GotToken(Error(_)) -> #(
+    GotSession(Ok(data)) -> #(Authenticated(email: data.email), effect.none())
+    GotSession(Error(_)) -> #(
       Unauthenticated,
       modem.replace("/sign-in", None, None),
     )
-    SignOut -> {
-      local_storage.remove_item("pie_safe_token")
-      #(Unauthenticated, modem.replace("/sign-in", None, None))
-    }
+    SignOut -> #(Unauthenticated, modem.replace("/sign-in", None, None))
   }
 }
 
 pub fn view(model: Model) -> Element(Msg) {
   case model {
+    Loading -> html.div([], [element.text("Loading...")])
     Unauthenticated -> html.div([], [])
     Authenticated(email) ->
       html.div(
@@ -89,18 +91,4 @@ pub fn view(model: Model) -> Element(Msg) {
         ],
       )
   }
-}
-
-fn decode_email(token: String) -> Result(String, Nil) {
-  let parts = string.split(token, ".")
-  use payload <- result.try(list.drop(parts, 1) |> list.first)
-  use bytes <- result.try(bit_array.base64_url_decode(payload))
-  use json_string <- result.try(bit_array.to_string(bytes))
-  let email_decoder = {
-    use email <- decode.field("email", decode.string)
-    decode.success(email)
-  }
-  result.map_error(json.parse(from: json_string, using: email_decoder), fn(_) {
-    Nil
-  })
 }

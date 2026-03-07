@@ -1,3 +1,4 @@
+import ffi/browser
 import gleam/json
 import lustre/attribute
 import lustre/effect.{type Effect}
@@ -35,7 +36,7 @@ pub fn update(model: Model, msg: Msg) -> #(Model, Effect(Msg)) {
       #(
         Model(..model, state: Loading),
         lustre_http.post(
-          "/api/auth/magic-link",
+          browser.origin() <> "/api/auth/magic-link",
           body,
           lustre_http.expect_anything(ApiResponse),
         ),
