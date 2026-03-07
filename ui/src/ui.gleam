@@ -1,38 +1,111 @@
-import core/greeting.{type Greeting, Greeting}
+import gleam/uri.{type Uri}
 import lustre
 import lustre/attribute
+import lustre/effect.{type Effect}
 import lustre/element.{type Element}
 import lustre/element/html
+import modem
+import pages/home
+import pages/sign_in
+import pages/sign_up
 
-pub fn main() {
-  let app = lustre.simple(init, update, view)
-  let assert Ok(_) = lustre.start(app, "#app", Nil)
-  Nil
+pub type Route {
+  SignUp
+  SignIn
+  Home
 }
 
-fn init(_flags) -> Greeting {
-  Greeting(message: "Hello, World!")
+pub type Model {
+  Model(
+    route: Route,
+    sign_up: sign_up.Model,
+    sign_in: sign_in.Model,
+    home: home.Model,
+  )
 }
 
 pub type Msg {
-  NoOp
+  OnRouteChange(Route)
+  SignUpMsg(sign_up.Msg)
+  SignInMsg(sign_in.Msg)
+  HomeMsg(home.Msg)
 }
 
-fn update(model: Greeting, _msg: Msg) -> Greeting {
-  model
+fn parse_route(current_uri: Uri) -> Route {
+  case uri.path_segments(current_uri.path) {
+    ["sign-up"] -> SignUp
+    ["sign-in"] -> SignIn
+    ["home"] -> Home
+    _ -> SignIn
+  }
 }
 
-fn view(model: Greeting) -> Element(Msg) {
-  html.div(
-    [
-      attribute.class(
-        "min-h-screen flex items-center justify-center bg-gray-50",
-      ),
-    ],
-    [
-      html.h1([attribute.class("text-4xl font-bold text-gray-900")], [
-        element.text(model.message),
-      ]),
-    ],
-  )
+fn on_url_change(current_uri: Uri) -> Msg {
+  OnRouteChange(parse_route(current_uri))
+}
+
+pub fn init(_flags) -> #(Model, Effect(Msg)) {
+  let initial_route = case modem.initial_uri() {
+    Ok(current_uri) -> parse_route(current_uri)
+    Error(_) -> SignIn
+  }
+  let #(home_model, home_effect) = home.init()
+  let model =
+    Model(
+      route: initial_route,
+      sign_up: sign_up.init(),
+      sign_in: sign_in.init(),
+      home: home_model,
+    )
+  let effects =
+    effect.batch([
+      modem.init(on_url_change),
+      effect.map(home_effect, HomeMsg),
+    ])
+  #(model, effects)
+}
+
+pub fn update(model: Model, msg: Msg) -> #(Model, Effect(Msg)) {
+  case msg {
+    OnRouteChange(route) -> {
+      case route {
+        Home -> {
+          let #(home_model, home_effect) = home.init()
+          #(
+            Model(..model, route: route, home: home_model),
+            effect.map(home_effect, HomeMsg),
+          )
+        }
+        _ -> #(Model(..model, route: route), effect.none())
+      }
+    }
+    SignUpMsg(sub_msg) -> {
+      let #(sub_model, sub_effect) = sign_up.update(model.sign_up, sub_msg)
+      #(Model(..model, sign_up: sub_model), effect.map(sub_effect, SignUpMsg))
+    }
+    SignInMsg(sub_msg) -> {
+      let #(sub_model, sub_effect) = sign_in.update(model.sign_in, sub_msg)
+      #(Model(..model, sign_in: sub_model), effect.map(sub_effect, SignInMsg))
+    }
+    HomeMsg(sub_msg) -> {
+      let #(sub_model, sub_effect) = home.update(model.home, sub_msg)
+      #(Model(..model, home: sub_model), effect.map(sub_effect, HomeMsg))
+    }
+  }
+}
+
+pub fn view(model: Model) -> Element(Msg) {
+  html.div([attribute.class("min-h-screen bg-gray-50")], [
+    case model.route {
+      SignUp -> element.map(sign_up.view(model.sign_up), SignUpMsg)
+      SignIn -> element.map(sign_in.view(model.sign_in), SignInMsg)
+      Home -> element.map(home.view(model.home), HomeMsg)
+    },
+  ])
+}
+
+pub fn main() {
+  let app = lustre.application(init, update, view)
+  let assert Ok(_) = lustre.start(app, "#app", Nil)
+  Nil
 }

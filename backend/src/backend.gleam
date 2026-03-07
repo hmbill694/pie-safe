@@ -67,7 +67,12 @@ pub fn main() {
 
         ["static", ..rest] -> serve_static(rest, not_found)
 
-        _ -> not_found
+        // SPA fallback — serve index.html for all non-static routes
+        // so the Lustre router can handle /sign-in, /sign-up, /home, etc.
+        _ ->
+          response.new(200)
+          |> response.set_header("content-type", "text/html; charset=utf-8")
+          |> response.set_body(mist.Bytes(bytes_tree.from_string(index_html)))
       }
     }
     |> mist.new
