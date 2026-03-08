@@ -40,12 +40,26 @@ pub fn exec_query(
   |> result.map_error(fn(err) { err.message })
 }
 
-/// Execute a command that returns no rows (`:exec`).
+/// Execute a command that returns no rows (`:exec`), 3-tuple variant
+/// (used by registry_sql which includes a tag string as the third element).
 pub fn exec_command(
   conn: sqlight.Connection,
   command: #(String, List(dev.Param), String),
 ) -> Result(Nil, String) {
   let #(sql, params, _) = command
+  let args = list.map(params, to_sqlight)
+  sqlight.query(sql, on: conn, with: args, expecting: decode.success(Nil))
+  |> result.map(fn(_) { Nil })
+  |> result.map_error(fn(err) { err.message })
+}
+
+/// Execute a command that returns no rows (`:exec`), 2-tuple variant
+/// (used by family_sql which does not include a tag string).
+pub fn exec_command2(
+  conn: sqlight.Connection,
+  command: #(String, List(dev.Param)),
+) -> Result(Nil, String) {
+  let #(sql, params) = command
   let args = list.map(params, to_sqlight)
   sqlight.query(sql, on: conn, with: args, expecting: decode.success(Nil))
   |> result.map(fn(_) { Nil })

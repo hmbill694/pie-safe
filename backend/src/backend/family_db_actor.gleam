@@ -9,9 +9,10 @@ import sqlight
 
 pub type Message {
   Exec(
-    query: #(String, List(dev.Param), String),
+    query: #(String, List(dev.Param)),
     reply_to: Subject(Result(Nil, String)),
   )
+  Query(run: fn(sqlight.Connection) -> Nil)
   GetLastUsedAt(reply_to: Subject(Int))
   Shutdown
 }
@@ -66,8 +67,13 @@ fn open_db(db_path: String) -> Result(sqlight.Connection, String) {
 fn handle_message(state: State, message: Message) -> actor.Next(State, Message) {
   case message {
     Exec(query:, reply_to:) -> {
-      let result = db.exec_command(state.conn, query)
+      let result = db.exec_command2(state.conn, query)
       process.send(reply_to, result)
+      actor.continue(State(..state, last_used_at: now_ms()))
+    }
+
+    Query(run:) -> {
+      run(state.conn)
       actor.continue(State(..state, last_used_at: now_ms()))
     }
 

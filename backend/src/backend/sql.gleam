@@ -21,7 +21,10 @@ pub type ListMembers {
 
 pub fn list_members() {
   let sql =
-    "SELECT id, email, first_name, last_name, date_of_birth, role, is_managed, created_at, updated_at\nFROM members"
+    "
+
+SELECT id, email, first_name, last_name, date_of_birth, role, is_managed, created_at, updated_at
+FROM members"
   #(sql, [], list_members_decoder())
 }
 
@@ -62,9 +65,11 @@ pub type GetMember {
   )
 }
 
-pub fn get_member(id: Int) {
+pub fn get_member(id id: Int) {
   let sql =
-    "SELECT id, email, first_name, last_name, date_of_birth, role, is_managed, created_at, updated_at\nFROM members\nWHERE id = ?"
+    "SELECT id, email, first_name, last_name, date_of_birth, role, is_managed, created_at, updated_at
+FROM members
+WHERE id = ?"
   #(sql, [dev.ParamInt(id)], get_member_decoder())
 }
 
@@ -105,10 +110,16 @@ pub type GetMemberByEmail {
   )
 }
 
-pub fn get_member_by_email(email: String) {
+pub fn get_member_by_email(email email: Option(String)) {
   let sql =
-    "SELECT id, email, first_name, last_name, date_of_birth, role, is_managed, created_at, updated_at\nFROM members\nWHERE email = ?"
-  #(sql, [dev.ParamString(email)], get_member_by_email_decoder())
+    "SELECT id, email, first_name, last_name, date_of_birth, role, is_managed, created_at, updated_at
+FROM members
+WHERE email = ?"
+  #(
+    sql,
+    [dev.ParamNullable(option.map(email, fn(v) { dev.ParamString(v) }))],
+    get_member_by_email_decoder(),
+  )
 }
 
 pub fn get_member_by_email_decoder() -> decode.Decoder(GetMemberByEmail) {
@@ -135,64 +146,59 @@ pub fn get_member_by_email_decoder() -> decode.Decoder(GetMemberByEmail) {
 }
 
 pub fn insert_member(
-  email: Option(String),
-  first_name: String,
-  last_name: String,
-  date_of_birth: Option(String),
-  role: String,
-  is_managed: Int,
-  created_at: String,
-  updated_at: String,
+  email email: Option(String),
+  first_name first_name: String,
+  last_name last_name: String,
+  date_of_birth date_of_birth: Option(String),
+  role role: String,
+  is_managed is_managed: Int,
+  created_at created_at: String,
+  updated_at updated_at: String,
 ) {
   let sql =
-    "INSERT INTO members (email, first_name, last_name, date_of_birth, role, is_managed, created_at, updated_at)\nVALUES (?, ?, ?, ?, ?, ?, ?, ?)"
-  #(
-    sql,
-    [
-      dev.ParamNullable(option.map(email, fn(v) { dev.ParamString(v) })),
-      dev.ParamString(first_name),
-      dev.ParamString(last_name),
-      dev.ParamNullable(option.map(date_of_birth, fn(v) { dev.ParamString(v) })),
-      dev.ParamString(role),
-      dev.ParamInt(is_managed),
-      dev.ParamString(created_at),
-      dev.ParamString(updated_at),
-    ],
-    "",
-  )
+    "INSERT INTO members (email, first_name, last_name, date_of_birth, role, is_managed, created_at, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+  #(sql, [
+    dev.ParamNullable(option.map(email, fn(v) { dev.ParamString(v) })),
+    dev.ParamString(first_name),
+    dev.ParamString(last_name),
+    dev.ParamNullable(option.map(date_of_birth, fn(v) { dev.ParamString(v) })),
+    dev.ParamString(role),
+    dev.ParamInt(is_managed),
+    dev.ParamString(created_at),
+    dev.ParamString(updated_at),
+  ])
 }
 
 pub fn update_member(
-  email: Option(String),
-  first_name: String,
-  last_name: String,
-  date_of_birth: Option(String),
-  role: String,
-  is_managed: Int,
-  updated_at: String,
-  id: Int,
+  email email: Option(String),
+  first_name first_name: String,
+  last_name last_name: String,
+  date_of_birth date_of_birth: Option(String),
+  role role: String,
+  is_managed is_managed: Int,
+  updated_at updated_at: String,
+  id id: Int,
 ) {
   let sql =
-    "UPDATE members\nSET email = ?, first_name = ?, last_name = ?, date_of_birth = ?, role = ?, is_managed = ?, updated_at = ?\nWHERE id = ?"
-  #(
-    sql,
-    [
-      dev.ParamNullable(option.map(email, fn(v) { dev.ParamString(v) })),
-      dev.ParamString(first_name),
-      dev.ParamString(last_name),
-      dev.ParamNullable(option.map(date_of_birth, fn(v) { dev.ParamString(v) })),
-      dev.ParamString(role),
-      dev.ParamInt(is_managed),
-      dev.ParamString(updated_at),
-      dev.ParamInt(id),
-    ],
-    "",
-  )
+    "UPDATE members
+SET email = ?, first_name = ?, last_name = ?, date_of_birth = ?, role = ?, is_managed = ?, updated_at = ?
+WHERE id = ?"
+  #(sql, [
+    dev.ParamNullable(option.map(email, fn(v) { dev.ParamString(v) })),
+    dev.ParamString(first_name),
+    dev.ParamString(last_name),
+    dev.ParamNullable(option.map(date_of_birth, fn(v) { dev.ParamString(v) })),
+    dev.ParamString(role),
+    dev.ParamInt(is_managed),
+    dev.ParamString(updated_at),
+    dev.ParamInt(id),
+  ])
 }
 
-pub fn delete_member(id: Int) {
+pub fn delete_member(id id: Int) {
   let sql = "DELETE FROM members WHERE id = ?"
-  #(sql, [dev.ParamInt(id)], "")
+  #(sql, [dev.ParamInt(id)])
 }
 
 pub type ListAuthTokensByMember {
@@ -207,9 +213,12 @@ pub type ListAuthTokensByMember {
   )
 }
 
-pub fn list_auth_tokens_by_member(member_id: Int) {
+pub fn list_auth_tokens_by_member(member_id member_id: Int) {
   let sql =
-    "SELECT id, member_id, token_hash, token_type, expires_at, used_at, created_at\nFROM auth_tokens\nWHERE member_id = ?"
+    "
+SELECT id, member_id, token_hash, token_type, expires_at, used_at, created_at
+FROM auth_tokens
+WHERE member_id ="
   #(sql, [dev.ParamInt(member_id)], list_auth_tokens_by_member_decoder())
 }
 
@@ -246,9 +255,13 @@ pub type GetAuthTokenByHash {
   )
 }
 
-pub fn get_auth_token_by_hash(token_hash: String) {
+pub fn get_auth_token_by_hash(token_hash token_hash: String) {
   let sql =
-    "SELECT id, member_id, token_hash, token_type, expires_at, used_at, created_at\nFROM auth_tokens\nWHERE token_hash = ?"
+    "?;
+
+SELECT id, member_id, token_hash, token_type, expires_at, used_at, created_at
+FROM auth_tokens
+WHERE token_hash ="
   #(sql, [dev.ParamString(token_hash)], get_auth_token_by_hash_decoder())
 }
 
@@ -272,42 +285,53 @@ pub fn get_auth_token_by_hash_decoder() -> decode.Decoder(GetAuthTokenByHash) {
 }
 
 pub fn insert_auth_token(
-  member_id: Int,
-  token_hash: String,
-  token_type: String,
-  expires_at: String,
-  used_at: Option(String),
-  created_at: String,
+  member_id member_id: Int,
+  token_hash token_hash: String,
+  token_type token_type: String,
+  expires_at expires_at: String,
+  used_at used_at: Option(String),
+  created_at created_at: String,
 ) {
   let sql =
-    "INSERT INTO auth_tokens (member_id, token_hash, token_type, expires_at, used_at, created_at)\nVALUES (?, ?, ?, ?, ?, ?)"
-  #(
-    sql,
-    [
-      dev.ParamInt(member_id),
-      dev.ParamString(token_hash),
-      dev.ParamString(token_type),
-      dev.ParamString(expires_at),
-      dev.ParamNullable(option.map(used_at, fn(v) { dev.ParamString(v) })),
-      dev.ParamString(created_at),
-    ],
-    "",
-  )
+    "?;
+
+INSERT INTO auth_tokens (member_id, token_hash, token_type, expires_at, used_at, created_at)
+VALUES (?, ?, ?, ?, ?,"
+  #(sql, [
+    dev.ParamInt(member_id),
+    dev.ParamString(token_hash),
+    dev.ParamString(token_type),
+    dev.ParamString(expires_at),
+    dev.ParamNullable(option.map(used_at, fn(v) { dev.ParamString(v) })),
+    dev.ParamString(created_at),
+  ])
 }
 
-pub fn mark_auth_token_used(used_at: String, id: Int) {
-  let sql = "UPDATE auth_tokens SET used_at = ? WHERE id = ?"
-  #(sql, [dev.ParamString(used_at), dev.ParamInt(id)], "")
+pub fn mark_auth_token_used(used_at used_at: Option(String), id id: Int) {
+  let sql =
+    ");
+
+UPDATE auth_tokens SET used_at = ? WHERE id ="
+  #(sql, [
+    dev.ParamNullable(option.map(used_at, fn(v) { dev.ParamString(v) })),
+    dev.ParamInt(id),
+  ])
 }
 
-pub fn delete_auth_token(id: Int) {
-  let sql = "DELETE FROM auth_tokens WHERE id = ?"
-  #(sql, [dev.ParamInt(id)], "")
+pub fn delete_auth_token(id id: Int) {
+  let sql =
+    "?;
+
+DELETE FROM auth_tokens WHERE id ="
+  #(sql, [dev.ParamInt(id)])
 }
 
-pub fn delete_expired_auth_tokens(expires_at: String) {
-  let sql = "DELETE FROM auth_tokens WHERE expires_at < ?"
-  #(sql, [dev.ParamString(expires_at)], "")
+pub fn delete_expired_auth_tokens(expires_at expires_at: String) {
+  let sql =
+    "?;
+
+DELETE FROM auth_tokens WHERE expires_at <"
+  #(sql, [dev.ParamString(expires_at)])
 }
 
 pub type ListProviders {
@@ -325,7 +349,11 @@ pub type ListProviders {
 
 pub fn list_providers() {
   let sql =
-    "SELECT id, name, specialty, phone, address, notes, created_at, updated_at\nFROM providers"
+    "?;
+
+
+SELECT id, name, specialty, phone, address, notes, created_at, updated_at
+FROM provide"
   #(sql, [], list_providers_decoder())
 }
 
@@ -363,9 +391,13 @@ pub type GetProvider {
   )
 }
 
-pub fn get_provider(id: Int) {
+pub fn get_provider(id id: Int) {
   let sql =
-    "SELECT id, name, specialty, phone, address, notes, created_at, updated_at\nFROM providers\nWHERE id = ?"
+    "s;
+
+SELECT id, name, specialty, phone, address, notes, created_at, updated_at
+FROM providers
+WHERE id ="
   #(sql, [dev.ParamInt(id)], get_provider_decoder())
 }
 
@@ -391,58 +423,2323 @@ pub fn get_provider_decoder() -> decode.Decoder(GetProvider) {
 }
 
 pub fn insert_provider(
-  name: String,
-  specialty: Option(String),
-  phone: Option(String),
-  address: Option(String),
-  notes: Option(String),
-  created_at: String,
-  updated_at: String,
+  name name: String,
+  specialty specialty: Option(String),
+  phone phone: Option(String),
+  address address: Option(String),
+  notes notes: Option(String),
+  created_at created_at: String,
+  updated_at updated_at: String,
 ) {
   let sql =
-    "INSERT INTO providers (name, specialty, phone, address, notes, created_at, updated_at)\nVALUES (?, ?, ?, ?, ?, ?, ?)"
-  #(
-    sql,
-    [
-      dev.ParamString(name),
-      dev.ParamNullable(option.map(specialty, fn(v) { dev.ParamString(v) })),
-      dev.ParamNullable(option.map(phone, fn(v) { dev.ParamString(v) })),
-      dev.ParamNullable(option.map(address, fn(v) { dev.ParamString(v) })),
-      dev.ParamNullable(option.map(notes, fn(v) { dev.ParamString(v) })),
-      dev.ParamString(created_at),
-      dev.ParamString(updated_at),
-    ],
-    "",
-  )
+    "?;
+
+INSERT INTO providers (name, specialty, phone, address, notes, created_at, updated_at)
+VALUES (?, ?, ?, ?, ?, ?,"
+  #(sql, [
+    dev.ParamString(name),
+    dev.ParamNullable(option.map(specialty, fn(v) { dev.ParamString(v) })),
+    dev.ParamNullable(option.map(phone, fn(v) { dev.ParamString(v) })),
+    dev.ParamNullable(option.map(address, fn(v) { dev.ParamString(v) })),
+    dev.ParamNullable(option.map(notes, fn(v) { dev.ParamString(v) })),
+    dev.ParamString(created_at),
+    dev.ParamString(updated_at),
+  ])
 }
 
 pub fn update_provider(
-  name: String,
-  specialty: Option(String),
-  phone: Option(String),
-  address: Option(String),
-  notes: Option(String),
-  updated_at: String,
-  id: Int,
+  name name: String,
+  specialty specialty: Option(String),
+  phone phone: Option(String),
+  address address: Option(String),
+  notes notes: Option(String),
+  updated_at updated_at: String,
+  id id: Int,
 ) {
   let sql =
-    "UPDATE providers\nSET name = ?, specialty = ?, phone = ?, address = ?, notes = ?, updated_at = ?\nWHERE id = ?"
-  #(
-    sql,
-    [
-      dev.ParamString(name),
-      dev.ParamNullable(option.map(specialty, fn(v) { dev.ParamString(v) })),
-      dev.ParamNullable(option.map(phone, fn(v) { dev.ParamString(v) })),
-      dev.ParamNullable(option.map(address, fn(v) { dev.ParamString(v) })),
-      dev.ParamNullable(option.map(notes, fn(v) { dev.ParamString(v) })),
-      dev.ParamString(updated_at),
-      dev.ParamInt(id),
-    ],
-    "",
+    ");
+
+UPDATE providers
+SET name = ?, specialty = ?, phone = ?, address = ?, notes = ?, updated_at = ?
+WHERE id ="
+  #(sql, [
+    dev.ParamString(name),
+    dev.ParamNullable(option.map(specialty, fn(v) { dev.ParamString(v) })),
+    dev.ParamNullable(option.map(phone, fn(v) { dev.ParamString(v) })),
+    dev.ParamNullable(option.map(address, fn(v) { dev.ParamString(v) })),
+    dev.ParamNullable(option.map(notes, fn(v) { dev.ParamString(v) })),
+    dev.ParamString(updated_at),
+    dev.ParamInt(id),
+  ])
+}
+
+pub fn delete_provider(id id: Int) {
+  let sql =
+    "?;
+
+DELETE FROM providers WHERE id ="
+  #(sql, [dev.ParamInt(id)])
+}
+
+pub type ListProvidersByMember {
+  ListProvidersByMember(
+    id: Int,
+    member_id: Int,
+    provider_id: Int,
+    is_primary: Int,
+    notes: Option(String),
   )
 }
 
-pub fn delete_provider(id: Int) {
-  let sql = "DELETE FROM providers WHERE id = ?"
-  #(sql, [dev.ParamInt(id)], "")
+pub fn list_providers_by_member(member_id member_id: Int) {
+  let sql =
+    "?;
+
+
+SELECT id, member_id, provider_id, is_primary, notes
+FROM member_providers
+WHERE member_id ="
+  #(sql, [dev.ParamInt(member_id)], list_providers_by_member_decoder())
+}
+
+pub fn list_providers_by_member_decoder() -> decode.Decoder(
+  ListProvidersByMember,
+) {
+  use id <- decode.field(0, decode.int)
+  use member_id <- decode.field(1, decode.int)
+  use provider_id <- decode.field(2, decode.int)
+  use is_primary <- decode.field(3, decode.int)
+  use notes <- decode.field(4, decode.optional(decode.string))
+  decode.success(ListProvidersByMember(
+    id:,
+    member_id:,
+    provider_id:,
+    is_primary:,
+    notes:,
+  ))
+}
+
+pub type GetMemberProvider {
+  GetMemberProvider(
+    id: Int,
+    member_id: Int,
+    provider_id: Int,
+    is_primary: Int,
+    notes: Option(String),
+  )
+}
+
+pub fn get_member_provider(id id: Int) {
+  let sql =
+    "?;
+
+SELECT id, member_id, provider_id, is_primary, notes
+FROM member_providers
+WHERE id ="
+  #(sql, [dev.ParamInt(id)], get_member_provider_decoder())
+}
+
+pub fn get_member_provider_decoder() -> decode.Decoder(GetMemberProvider) {
+  use id <- decode.field(0, decode.int)
+  use member_id <- decode.field(1, decode.int)
+  use provider_id <- decode.field(2, decode.int)
+  use is_primary <- decode.field(3, decode.int)
+  use notes <- decode.field(4, decode.optional(decode.string))
+  decode.success(GetMemberProvider(
+    id:,
+    member_id:,
+    provider_id:,
+    is_primary:,
+    notes:,
+  ))
+}
+
+pub fn insert_member_provider(
+  member_id member_id: Int,
+  provider_id provider_id: Int,
+  is_primary is_primary: Int,
+  notes notes: Option(String),
+) {
+  let sql =
+    "?;
+
+INSERT INTO member_providers (member_id, provider_id, is_primary, notes)
+VALUES (?, ?, ?,"
+  #(sql, [
+    dev.ParamInt(member_id),
+    dev.ParamInt(provider_id),
+    dev.ParamInt(is_primary),
+    dev.ParamNullable(option.map(notes, fn(v) { dev.ParamString(v) })),
+  ])
+}
+
+pub fn update_member_provider(
+  is_primary is_primary: Int,
+  notes notes: Option(String),
+  id id: Int,
+) {
+  let sql =
+    ");
+
+UPDATE member_providers
+SET is_primary = ?, notes = ?
+WHERE id ="
+  #(sql, [
+    dev.ParamInt(is_primary),
+    dev.ParamNullable(option.map(notes, fn(v) { dev.ParamString(v) })),
+    dev.ParamInt(id),
+  ])
+}
+
+pub fn delete_member_provider(id id: Int) {
+  let sql =
+    "?;
+
+DELETE FROM member_providers WHERE id ="
+  #(sql, [dev.ParamInt(id)])
+}
+
+pub type ListAppointments {
+  ListAppointments(
+    id: Int,
+    member_id: Int,
+    provider_id: Option(Int),
+    title: String,
+    appointment_type: String,
+    scheduled_at: String,
+    duration_minutes: Option(Int),
+    location: Option(String),
+    outcome_notes: Option(String),
+    cost: Option(Float),
+    insurance_covered: Option(Float),
+    is_recurring: Int,
+    recurrence_rule: Option(String),
+    created_at: String,
+    updated_at: String,
+  )
+}
+
+pub fn list_appointments() {
+  let sql =
+    "?;
+
+
+SELECT id, member_id, provider_id, title, appointment_type, scheduled_at, duration_minutes, location, outcome_notes, cost, insurance_covered, is_recurring, recurrence_rule, created_at, updated_at
+FROM appointmen"
+  #(sql, [], list_appointments_decoder())
+}
+
+pub fn list_appointments_decoder() -> decode.Decoder(ListAppointments) {
+  use id <- decode.field(0, decode.int)
+  use member_id <- decode.field(1, decode.int)
+  use provider_id <- decode.field(2, decode.optional(decode.int))
+  use title <- decode.field(3, decode.string)
+  use appointment_type <- decode.field(4, decode.string)
+  use scheduled_at <- decode.field(5, decode.string)
+  use duration_minutes <- decode.field(6, decode.optional(decode.int))
+  use location <- decode.field(7, decode.optional(decode.string))
+  use outcome_notes <- decode.field(8, decode.optional(decode.string))
+  use cost <- decode.field(9, decode.optional(decode.float))
+  use insurance_covered <- decode.field(10, decode.optional(decode.float))
+  use is_recurring <- decode.field(11, decode.int)
+  use recurrence_rule <- decode.field(12, decode.optional(decode.string))
+  use created_at <- decode.field(13, decode.string)
+  use updated_at <- decode.field(14, decode.string)
+  decode.success(ListAppointments(
+    id:,
+    member_id:,
+    provider_id:,
+    title:,
+    appointment_type:,
+    scheduled_at:,
+    duration_minutes:,
+    location:,
+    outcome_notes:,
+    cost:,
+    insurance_covered:,
+    is_recurring:,
+    recurrence_rule:,
+    created_at:,
+    updated_at:,
+  ))
+}
+
+pub type ListAppointmentsByMember {
+  ListAppointmentsByMember(
+    id: Int,
+    member_id: Int,
+    provider_id: Option(Int),
+    title: String,
+    appointment_type: String,
+    scheduled_at: String,
+    duration_minutes: Option(Int),
+    location: Option(String),
+    outcome_notes: Option(String),
+    cost: Option(Float),
+    insurance_covered: Option(Float),
+    is_recurring: Int,
+    recurrence_rule: Option(String),
+    created_at: String,
+    updated_at: String,
+  )
+}
+
+pub fn list_appointments_by_member(member_id member_id: Int) {
+  let sql =
+    "s;
+
+SELECT id, member_id, provider_id, title, appointment_type, scheduled_at, duration_minutes, location, outcome_notes, cost, insurance_covered, is_recurring, recurrence_rule, created_at, updated_at
+FROM appointments
+WHERE member_id ="
+  #(sql, [dev.ParamInt(member_id)], list_appointments_by_member_decoder())
+}
+
+pub fn list_appointments_by_member_decoder() -> decode.Decoder(
+  ListAppointmentsByMember,
+) {
+  use id <- decode.field(0, decode.int)
+  use member_id <- decode.field(1, decode.int)
+  use provider_id <- decode.field(2, decode.optional(decode.int))
+  use title <- decode.field(3, decode.string)
+  use appointment_type <- decode.field(4, decode.string)
+  use scheduled_at <- decode.field(5, decode.string)
+  use duration_minutes <- decode.field(6, decode.optional(decode.int))
+  use location <- decode.field(7, decode.optional(decode.string))
+  use outcome_notes <- decode.field(8, decode.optional(decode.string))
+  use cost <- decode.field(9, decode.optional(decode.float))
+  use insurance_covered <- decode.field(10, decode.optional(decode.float))
+  use is_recurring <- decode.field(11, decode.int)
+  use recurrence_rule <- decode.field(12, decode.optional(decode.string))
+  use created_at <- decode.field(13, decode.string)
+  use updated_at <- decode.field(14, decode.string)
+  decode.success(ListAppointmentsByMember(
+    id:,
+    member_id:,
+    provider_id:,
+    title:,
+    appointment_type:,
+    scheduled_at:,
+    duration_minutes:,
+    location:,
+    outcome_notes:,
+    cost:,
+    insurance_covered:,
+    is_recurring:,
+    recurrence_rule:,
+    created_at:,
+    updated_at:,
+  ))
+}
+
+pub type ListUpcomingAppointmentsByMember {
+  ListUpcomingAppointmentsByMember(
+    id: Int,
+    member_id: Int,
+    provider_id: Option(Int),
+    title: String,
+    appointment_type: String,
+    scheduled_at: String,
+    duration_minutes: Option(Int),
+    location: Option(String),
+    outcome_notes: Option(String),
+    cost: Option(Float),
+    insurance_covered: Option(Float),
+    is_recurring: Int,
+    recurrence_rule: Option(String),
+    created_at: String,
+    updated_at: String,
+  )
+}
+
+pub fn list_upcoming_appointments_by_member(
+  member_id member_id: Int,
+  scheduled_at scheduled_at: String,
+) {
+  let sql =
+    "?;
+
+SELECT id, member_id, provider_id, title, appointment_type, scheduled_at, duration_minutes, location, outcome_notes, cost, insurance_covered, is_recurring, recurrence_rule, created_at, updated_at
+FROM appointments
+WHERE member_id = ? AND scheduled_at >= ?
+ORDER BY scheduled_at A"
+  #(
+    sql,
+    [dev.ParamInt(member_id), dev.ParamString(scheduled_at)],
+    list_upcoming_appointments_by_member_decoder(),
+  )
+}
+
+pub fn list_upcoming_appointments_by_member_decoder() -> decode.Decoder(
+  ListUpcomingAppointmentsByMember,
+) {
+  use id <- decode.field(0, decode.int)
+  use member_id <- decode.field(1, decode.int)
+  use provider_id <- decode.field(2, decode.optional(decode.int))
+  use title <- decode.field(3, decode.string)
+  use appointment_type <- decode.field(4, decode.string)
+  use scheduled_at <- decode.field(5, decode.string)
+  use duration_minutes <- decode.field(6, decode.optional(decode.int))
+  use location <- decode.field(7, decode.optional(decode.string))
+  use outcome_notes <- decode.field(8, decode.optional(decode.string))
+  use cost <- decode.field(9, decode.optional(decode.float))
+  use insurance_covered <- decode.field(10, decode.optional(decode.float))
+  use is_recurring <- decode.field(11, decode.int)
+  use recurrence_rule <- decode.field(12, decode.optional(decode.string))
+  use created_at <- decode.field(13, decode.string)
+  use updated_at <- decode.field(14, decode.string)
+  decode.success(ListUpcomingAppointmentsByMember(
+    id:,
+    member_id:,
+    provider_id:,
+    title:,
+    appointment_type:,
+    scheduled_at:,
+    duration_minutes:,
+    location:,
+    outcome_notes:,
+    cost:,
+    insurance_covered:,
+    is_recurring:,
+    recurrence_rule:,
+    created_at:,
+    updated_at:,
+  ))
+}
+
+pub type GetAppointment {
+  GetAppointment(
+    id: Int,
+    member_id: Int,
+    provider_id: Option(Int),
+    title: String,
+    appointment_type: String,
+    scheduled_at: String,
+    duration_minutes: Option(Int),
+    location: Option(String),
+    outcome_notes: Option(String),
+    cost: Option(Float),
+    insurance_covered: Option(Float),
+    is_recurring: Int,
+    recurrence_rule: Option(String),
+    created_at: String,
+    updated_at: String,
+  )
+}
+
+pub fn get_appointment(id id: Int) {
+  let sql =
+    "C;
+
+SELECT id, member_id, provider_id, title, appointment_type, scheduled_at, duration_minutes, location, outcome_notes, cost, insurance_covered, is_recurring, recurrence_rule, created_at, updated_at
+FROM appointments
+WHERE id ="
+  #(sql, [dev.ParamInt(id)], get_appointment_decoder())
+}
+
+pub fn get_appointment_decoder() -> decode.Decoder(GetAppointment) {
+  use id <- decode.field(0, decode.int)
+  use member_id <- decode.field(1, decode.int)
+  use provider_id <- decode.field(2, decode.optional(decode.int))
+  use title <- decode.field(3, decode.string)
+  use appointment_type <- decode.field(4, decode.string)
+  use scheduled_at <- decode.field(5, decode.string)
+  use duration_minutes <- decode.field(6, decode.optional(decode.int))
+  use location <- decode.field(7, decode.optional(decode.string))
+  use outcome_notes <- decode.field(8, decode.optional(decode.string))
+  use cost <- decode.field(9, decode.optional(decode.float))
+  use insurance_covered <- decode.field(10, decode.optional(decode.float))
+  use is_recurring <- decode.field(11, decode.int)
+  use recurrence_rule <- decode.field(12, decode.optional(decode.string))
+  use created_at <- decode.field(13, decode.string)
+  use updated_at <- decode.field(14, decode.string)
+  decode.success(GetAppointment(
+    id:,
+    member_id:,
+    provider_id:,
+    title:,
+    appointment_type:,
+    scheduled_at:,
+    duration_minutes:,
+    location:,
+    outcome_notes:,
+    cost:,
+    insurance_covered:,
+    is_recurring:,
+    recurrence_rule:,
+    created_at:,
+    updated_at:,
+  ))
+}
+
+pub fn insert_appointment(
+  member_id member_id: Int,
+  provider_id provider_id: Option(Int),
+  title title: String,
+  appointment_type appointment_type: String,
+  scheduled_at scheduled_at: String,
+  duration_minutes duration_minutes: Option(Int),
+  location location: Option(String),
+  outcome_notes outcome_notes: Option(String),
+  cost cost: Option(Float),
+  insurance_covered insurance_covered: Option(Float),
+  is_recurring is_recurring: Int,
+  recurrence_rule recurrence_rule: Option(String),
+  created_at created_at: String,
+  updated_at updated_at: String,
+) {
+  let sql =
+    "?;
+
+INSERT INTO appointments (member_id, provider_id, title, appointment_type, scheduled_at, duration_minutes, location, outcome_notes, cost, insurance_covered, is_recurring, recurrence_rule, created_at, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,"
+  #(sql, [
+    dev.ParamInt(member_id),
+    dev.ParamNullable(option.map(provider_id, fn(v) { dev.ParamInt(v) })),
+    dev.ParamString(title),
+    dev.ParamString(appointment_type),
+    dev.ParamString(scheduled_at),
+    dev.ParamNullable(option.map(duration_minutes, fn(v) { dev.ParamInt(v) })),
+    dev.ParamNullable(option.map(location, fn(v) { dev.ParamString(v) })),
+    dev.ParamNullable(option.map(outcome_notes, fn(v) { dev.ParamString(v) })),
+    dev.ParamNullable(option.map(cost, fn(v) { dev.ParamFloat(v) })),
+    dev.ParamNullable(
+      option.map(insurance_covered, fn(v) { dev.ParamFloat(v) }),
+    ),
+    dev.ParamInt(is_recurring),
+    dev.ParamNullable(option.map(recurrence_rule, fn(v) { dev.ParamString(v) })),
+    dev.ParamString(created_at),
+    dev.ParamString(updated_at),
+  ])
+}
+
+pub fn update_appointment(
+  provider_id provider_id: Option(Int),
+  title title: String,
+  appointment_type appointment_type: String,
+  scheduled_at scheduled_at: String,
+  duration_minutes duration_minutes: Option(Int),
+  location location: Option(String),
+  outcome_notes outcome_notes: Option(String),
+  cost cost: Option(Float),
+  insurance_covered insurance_covered: Option(Float),
+  is_recurring is_recurring: Int,
+  recurrence_rule recurrence_rule: Option(String),
+  updated_at updated_at: String,
+  id id: Int,
+) {
+  let sql =
+    ");
+
+UPDATE appointments
+SET provider_id = ?, title = ?, appointment_type = ?, scheduled_at = ?, duration_minutes = ?, location = ?, outcome_notes = ?, cost = ?, insurance_covered = ?, is_recurring = ?, recurrence_rule = ?, updated_at = ?
+WHERE id ="
+  #(sql, [
+    dev.ParamNullable(option.map(provider_id, fn(v) { dev.ParamInt(v) })),
+    dev.ParamString(title),
+    dev.ParamString(appointment_type),
+    dev.ParamString(scheduled_at),
+    dev.ParamNullable(option.map(duration_minutes, fn(v) { dev.ParamInt(v) })),
+    dev.ParamNullable(option.map(location, fn(v) { dev.ParamString(v) })),
+    dev.ParamNullable(option.map(outcome_notes, fn(v) { dev.ParamString(v) })),
+    dev.ParamNullable(option.map(cost, fn(v) { dev.ParamFloat(v) })),
+    dev.ParamNullable(
+      option.map(insurance_covered, fn(v) { dev.ParamFloat(v) }),
+    ),
+    dev.ParamInt(is_recurring),
+    dev.ParamNullable(option.map(recurrence_rule, fn(v) { dev.ParamString(v) })),
+    dev.ParamString(updated_at),
+    dev.ParamInt(id),
+  ])
+}
+
+pub fn delete_appointment(id id: Int) {
+  let sql =
+    "?;
+
+DELETE FROM appointments WHERE id ="
+  #(sql, [dev.ParamInt(id)])
+}
+
+pub type ListRemindersByAppointment {
+  ListRemindersByAppointment(
+    id: Int,
+    appointment_id: Int,
+    remind_at: String,
+    sent_at: Option(String),
+    acknowledged_at: Option(String),
+  )
+}
+
+pub fn list_reminders_by_appointment(appointment_id appointment_id: Int) {
+  let sql =
+    "?;
+
+
+SELECT id, appointment_id, remind_at, sent_at, acknowledged_at
+FROM appointment_reminders
+WHERE appointment_id ="
+  #(
+    sql,
+    [dev.ParamInt(appointment_id)],
+    list_reminders_by_appointment_decoder(),
+  )
+}
+
+pub fn list_reminders_by_appointment_decoder() -> decode.Decoder(
+  ListRemindersByAppointment,
+) {
+  use id <- decode.field(0, decode.int)
+  use appointment_id <- decode.field(1, decode.int)
+  use remind_at <- decode.field(2, decode.string)
+  use sent_at <- decode.field(3, decode.optional(decode.string))
+  use acknowledged_at <- decode.field(4, decode.optional(decode.string))
+  decode.success(ListRemindersByAppointment(
+    id:,
+    appointment_id:,
+    remind_at:,
+    sent_at:,
+    acknowledged_at:,
+  ))
+}
+
+pub type ListPendingReminders {
+  ListPendingReminders(
+    id: Int,
+    appointment_id: Int,
+    remind_at: String,
+    sent_at: Option(String),
+    acknowledged_at: Option(String),
+  )
+}
+
+pub fn list_pending_reminders(remind_at remind_at: String) {
+  let sql =
+    "?;
+
+SELECT id, appointment_id, remind_at, sent_at, acknowledged_at
+FROM appointment_reminders
+WHERE sent_at IS NULL AND remind_at <="
+  #(sql, [dev.ParamString(remind_at)], list_pending_reminders_decoder())
+}
+
+pub fn list_pending_reminders_decoder() -> decode.Decoder(ListPendingReminders) {
+  use id <- decode.field(0, decode.int)
+  use appointment_id <- decode.field(1, decode.int)
+  use remind_at <- decode.field(2, decode.string)
+  use sent_at <- decode.field(3, decode.optional(decode.string))
+  use acknowledged_at <- decode.field(4, decode.optional(decode.string))
+  decode.success(ListPendingReminders(
+    id:,
+    appointment_id:,
+    remind_at:,
+    sent_at:,
+    acknowledged_at:,
+  ))
+}
+
+pub type GetAppointmentReminder {
+  GetAppointmentReminder(
+    id: Int,
+    appointment_id: Int,
+    remind_at: String,
+    sent_at: Option(String),
+    acknowledged_at: Option(String),
+  )
+}
+
+pub fn get_appointment_reminder(id id: Int) {
+  let sql =
+    "?;
+
+SELECT id, appointment_id, remind_at, sent_at, acknowledged_at
+FROM appointment_reminders
+WHERE id ="
+  #(sql, [dev.ParamInt(id)], get_appointment_reminder_decoder())
+}
+
+pub fn get_appointment_reminder_decoder() -> decode.Decoder(
+  GetAppointmentReminder,
+) {
+  use id <- decode.field(0, decode.int)
+  use appointment_id <- decode.field(1, decode.int)
+  use remind_at <- decode.field(2, decode.string)
+  use sent_at <- decode.field(3, decode.optional(decode.string))
+  use acknowledged_at <- decode.field(4, decode.optional(decode.string))
+  decode.success(GetAppointmentReminder(
+    id:,
+    appointment_id:,
+    remind_at:,
+    sent_at:,
+    acknowledged_at:,
+  ))
+}
+
+pub fn insert_appointment_reminder(
+  appointment_id appointment_id: Int,
+  remind_at remind_at: String,
+  sent_at sent_at: Option(String),
+  acknowledged_at acknowledged_at: Option(String),
+) {
+  let sql =
+    "?;
+
+INSERT INTO appointment_reminders (appointment_id, remind_at, sent_at, acknowledged_at)
+VALUES (?, ?, ?,"
+  #(sql, [
+    dev.ParamInt(appointment_id),
+    dev.ParamString(remind_at),
+    dev.ParamNullable(option.map(sent_at, fn(v) { dev.ParamString(v) })),
+    dev.ParamNullable(option.map(acknowledged_at, fn(v) { dev.ParamString(v) })),
+  ])
+}
+
+pub fn mark_reminder_sent(sent_at sent_at: Option(String), id id: Int) {
+  let sql =
+    ");
+
+UPDATE appointment_reminders SET sent_at = ? WHERE id ="
+  #(sql, [
+    dev.ParamNullable(option.map(sent_at, fn(v) { dev.ParamString(v) })),
+    dev.ParamInt(id),
+  ])
+}
+
+pub fn mark_reminder_acknowledged(
+  acknowledged_at acknowledged_at: Option(String),
+  id id: Int,
+) {
+  let sql =
+    "?;
+
+UPDATE appointment_reminders SET acknowledged_at = ? WHERE id ="
+  #(sql, [
+    dev.ParamNullable(option.map(acknowledged_at, fn(v) { dev.ParamString(v) })),
+    dev.ParamInt(id),
+  ])
+}
+
+pub fn delete_appointment_reminder(id id: Int) {
+  let sql =
+    "?;
+
+DELETE FROM appointment_reminders WHERE id ="
+  #(sql, [dev.ParamInt(id)])
+}
+
+pub type ListMedications {
+  ListMedications(
+    id: Int,
+    name: String,
+    dosage: Option(String),
+    unit: Option(String),
+    form: Option(String),
+    notes: Option(String),
+    created_at: String,
+  )
+}
+
+pub fn list_medications() {
+  let sql =
+    "?;
+
+
+SELECT id, name, dosage, unit, form, notes, created_at
+FROM medicatio"
+  #(sql, [], list_medications_decoder())
+}
+
+pub fn list_medications_decoder() -> decode.Decoder(ListMedications) {
+  use id <- decode.field(0, decode.int)
+  use name <- decode.field(1, decode.string)
+  use dosage <- decode.field(2, decode.optional(decode.string))
+  use unit <- decode.field(3, decode.optional(decode.string))
+  use form <- decode.field(4, decode.optional(decode.string))
+  use notes <- decode.field(5, decode.optional(decode.string))
+  use created_at <- decode.field(6, decode.string)
+  decode.success(ListMedications(
+    id:,
+    name:,
+    dosage:,
+    unit:,
+    form:,
+    notes:,
+    created_at:,
+  ))
+}
+
+pub type GetMedication {
+  GetMedication(
+    id: Int,
+    name: String,
+    dosage: Option(String),
+    unit: Option(String),
+    form: Option(String),
+    notes: Option(String),
+    created_at: String,
+  )
+}
+
+pub fn get_medication(id id: Int) {
+  let sql =
+    "s;
+
+SELECT id, name, dosage, unit, form, notes, created_at
+FROM medications
+WHERE id ="
+  #(sql, [dev.ParamInt(id)], get_medication_decoder())
+}
+
+pub fn get_medication_decoder() -> decode.Decoder(GetMedication) {
+  use id <- decode.field(0, decode.int)
+  use name <- decode.field(1, decode.string)
+  use dosage <- decode.field(2, decode.optional(decode.string))
+  use unit <- decode.field(3, decode.optional(decode.string))
+  use form <- decode.field(4, decode.optional(decode.string))
+  use notes <- decode.field(5, decode.optional(decode.string))
+  use created_at <- decode.field(6, decode.string)
+  decode.success(GetMedication(
+    id:,
+    name:,
+    dosage:,
+    unit:,
+    form:,
+    notes:,
+    created_at:,
+  ))
+}
+
+pub fn insert_medication(
+  name name: String,
+  dosage dosage: Option(String),
+  unit unit: Option(String),
+  form form: Option(String),
+  notes notes: Option(String),
+  created_at created_at: String,
+) {
+  let sql =
+    "?;
+
+INSERT INTO medications (name, dosage, unit, form, notes, created_at)
+VALUES (?, ?, ?, ?, ?,"
+  #(sql, [
+    dev.ParamString(name),
+    dev.ParamNullable(option.map(dosage, fn(v) { dev.ParamString(v) })),
+    dev.ParamNullable(option.map(unit, fn(v) { dev.ParamString(v) })),
+    dev.ParamNullable(option.map(form, fn(v) { dev.ParamString(v) })),
+    dev.ParamNullable(option.map(notes, fn(v) { dev.ParamString(v) })),
+    dev.ParamString(created_at),
+  ])
+}
+
+pub fn update_medication(
+  name name: String,
+  dosage dosage: Option(String),
+  unit unit: Option(String),
+  form form: Option(String),
+  notes notes: Option(String),
+  id id: Int,
+) {
+  let sql =
+    ");
+
+UPDATE medications
+SET name = ?, dosage = ?, unit = ?, form = ?, notes = ?
+WHERE id ="
+  #(sql, [
+    dev.ParamString(name),
+    dev.ParamNullable(option.map(dosage, fn(v) { dev.ParamString(v) })),
+    dev.ParamNullable(option.map(unit, fn(v) { dev.ParamString(v) })),
+    dev.ParamNullable(option.map(form, fn(v) { dev.ParamString(v) })),
+    dev.ParamNullable(option.map(notes, fn(v) { dev.ParamString(v) })),
+    dev.ParamInt(id),
+  ])
+}
+
+pub fn delete_medication(id id: Int) {
+  let sql =
+    "?;
+
+DELETE FROM medications WHERE id ="
+  #(sql, [dev.ParamInt(id)])
+}
+
+pub type ListMedicationsByMember {
+  ListMedicationsByMember(
+    id: Int,
+    member_id: Int,
+    medication_id: Int,
+    prescribing_provider_id: Option(Int),
+    frequency: Option(String),
+    instructions: Option(String),
+    started_at: String,
+    ended_at: Option(String),
+    reason: Option(String),
+    created_at: String,
+    updated_at: String,
+  )
+}
+
+pub fn list_medications_by_member(member_id member_id: Int) {
+  let sql =
+    "?;
+
+
+SELECT id, member_id, medication_id, prescribing_provider_id, frequency, instructions, started_at, ended_at, reason, created_at, updated_at
+FROM member_medications
+WHERE member_id ="
+  #(sql, [dev.ParamInt(member_id)], list_medications_by_member_decoder())
+}
+
+pub fn list_medications_by_member_decoder() -> decode.Decoder(
+  ListMedicationsByMember,
+) {
+  use id <- decode.field(0, decode.int)
+  use member_id <- decode.field(1, decode.int)
+  use medication_id <- decode.field(2, decode.int)
+  use prescribing_provider_id <- decode.field(3, decode.optional(decode.int))
+  use frequency <- decode.field(4, decode.optional(decode.string))
+  use instructions <- decode.field(5, decode.optional(decode.string))
+  use started_at <- decode.field(6, decode.string)
+  use ended_at <- decode.field(7, decode.optional(decode.string))
+  use reason <- decode.field(8, decode.optional(decode.string))
+  use created_at <- decode.field(9, decode.string)
+  use updated_at <- decode.field(10, decode.string)
+  decode.success(ListMedicationsByMember(
+    id:,
+    member_id:,
+    medication_id:,
+    prescribing_provider_id:,
+    frequency:,
+    instructions:,
+    started_at:,
+    ended_at:,
+    reason:,
+    created_at:,
+    updated_at:,
+  ))
+}
+
+pub type ListActiveMedicationsByMember {
+  ListActiveMedicationsByMember(
+    id: Int,
+    member_id: Int,
+    medication_id: Int,
+    prescribing_provider_id: Option(Int),
+    frequency: Option(String),
+    instructions: Option(String),
+    started_at: String,
+    ended_at: Option(String),
+    reason: Option(String),
+    created_at: String,
+    updated_at: String,
+  )
+}
+
+pub fn list_active_medications_by_member(member_id member_id: Int) {
+  let sql =
+    "?;
+
+SELECT id, member_id, medication_id, prescribing_provider_id, frequency, instructions, started_at, ended_at, reason, created_at, updated_at
+FROM member_medications
+WHERE member_id = ? AND ended_at IS NU"
+  #(sql, [dev.ParamInt(member_id)], list_active_medications_by_member_decoder())
+}
+
+pub fn list_active_medications_by_member_decoder() -> decode.Decoder(
+  ListActiveMedicationsByMember,
+) {
+  use id <- decode.field(0, decode.int)
+  use member_id <- decode.field(1, decode.int)
+  use medication_id <- decode.field(2, decode.int)
+  use prescribing_provider_id <- decode.field(3, decode.optional(decode.int))
+  use frequency <- decode.field(4, decode.optional(decode.string))
+  use instructions <- decode.field(5, decode.optional(decode.string))
+  use started_at <- decode.field(6, decode.string)
+  use ended_at <- decode.field(7, decode.optional(decode.string))
+  use reason <- decode.field(8, decode.optional(decode.string))
+  use created_at <- decode.field(9, decode.string)
+  use updated_at <- decode.field(10, decode.string)
+  decode.success(ListActiveMedicationsByMember(
+    id:,
+    member_id:,
+    medication_id:,
+    prescribing_provider_id:,
+    frequency:,
+    instructions:,
+    started_at:,
+    ended_at:,
+    reason:,
+    created_at:,
+    updated_at:,
+  ))
+}
+
+pub type GetMemberMedication {
+  GetMemberMedication(
+    id: Int,
+    member_id: Int,
+    medication_id: Int,
+    prescribing_provider_id: Option(Int),
+    frequency: Option(String),
+    instructions: Option(String),
+    started_at: String,
+    ended_at: Option(String),
+    reason: Option(String),
+    created_at: String,
+    updated_at: String,
+  )
+}
+
+pub fn get_member_medication(id id: Int) {
+  let sql =
+    "L;
+
+SELECT id, member_id, medication_id, prescribing_provider_id, frequency, instructions, started_at, ended_at, reason, created_at, updated_at
+FROM member_medications
+WHERE id ="
+  #(sql, [dev.ParamInt(id)], get_member_medication_decoder())
+}
+
+pub fn get_member_medication_decoder() -> decode.Decoder(GetMemberMedication) {
+  use id <- decode.field(0, decode.int)
+  use member_id <- decode.field(1, decode.int)
+  use medication_id <- decode.field(2, decode.int)
+  use prescribing_provider_id <- decode.field(3, decode.optional(decode.int))
+  use frequency <- decode.field(4, decode.optional(decode.string))
+  use instructions <- decode.field(5, decode.optional(decode.string))
+  use started_at <- decode.field(6, decode.string)
+  use ended_at <- decode.field(7, decode.optional(decode.string))
+  use reason <- decode.field(8, decode.optional(decode.string))
+  use created_at <- decode.field(9, decode.string)
+  use updated_at <- decode.field(10, decode.string)
+  decode.success(GetMemberMedication(
+    id:,
+    member_id:,
+    medication_id:,
+    prescribing_provider_id:,
+    frequency:,
+    instructions:,
+    started_at:,
+    ended_at:,
+    reason:,
+    created_at:,
+    updated_at:,
+  ))
+}
+
+pub fn insert_member_medication(
+  member_id member_id: Int,
+  medication_id medication_id: Int,
+  prescribing_provider_id prescribing_provider_id: Option(Int),
+  frequency frequency: Option(String),
+  instructions instructions: Option(String),
+  started_at started_at: String,
+  ended_at ended_at: Option(String),
+  reason reason: Option(String),
+  created_at created_at: String,
+  updated_at updated_at: String,
+) {
+  let sql =
+    "?;
+
+INSERT INTO member_medications (member_id, medication_id, prescribing_provider_id, frequency, instructions, started_at, ended_at, reason, created_at, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?,"
+  #(sql, [
+    dev.ParamInt(member_id),
+    dev.ParamInt(medication_id),
+    dev.ParamNullable(
+      option.map(prescribing_provider_id, fn(v) { dev.ParamInt(v) }),
+    ),
+    dev.ParamNullable(option.map(frequency, fn(v) { dev.ParamString(v) })),
+    dev.ParamNullable(option.map(instructions, fn(v) { dev.ParamString(v) })),
+    dev.ParamString(started_at),
+    dev.ParamNullable(option.map(ended_at, fn(v) { dev.ParamString(v) })),
+    dev.ParamNullable(option.map(reason, fn(v) { dev.ParamString(v) })),
+    dev.ParamString(created_at),
+    dev.ParamString(updated_at),
+  ])
+}
+
+pub fn update_member_medication(
+  prescribing_provider_id prescribing_provider_id: Option(Int),
+  frequency frequency: Option(String),
+  instructions instructions: Option(String),
+  started_at started_at: String,
+  ended_at ended_at: Option(String),
+  reason reason: Option(String),
+  updated_at updated_at: String,
+  id id: Int,
+) {
+  let sql =
+    ");
+
+UPDATE member_medications
+SET prescribing_provider_id = ?, frequency = ?, instructions = ?, started_at = ?, ended_at = ?, reason = ?, updated_at = ?
+WHERE id ="
+  #(sql, [
+    dev.ParamNullable(
+      option.map(prescribing_provider_id, fn(v) { dev.ParamInt(v) }),
+    ),
+    dev.ParamNullable(option.map(frequency, fn(v) { dev.ParamString(v) })),
+    dev.ParamNullable(option.map(instructions, fn(v) { dev.ParamString(v) })),
+    dev.ParamString(started_at),
+    dev.ParamNullable(option.map(ended_at, fn(v) { dev.ParamString(v) })),
+    dev.ParamNullable(option.map(reason, fn(v) { dev.ParamString(v) })),
+    dev.ParamString(updated_at),
+    dev.ParamInt(id),
+  ])
+}
+
+pub fn delete_member_medication(id id: Int) {
+  let sql =
+    "?;
+
+DELETE FROM member_medications WHERE id ="
+  #(sql, [dev.ParamInt(id)])
+}
+
+pub type ListAllergiesByMember {
+  ListAllergiesByMember(
+    id: Int,
+    member_id: Int,
+    allergen: String,
+    allergy_type: String,
+    reaction: Option(String),
+    severity: String,
+    diagnosed_at: Option(String),
+    notes: Option(String),
+    created_at: String,
+    updated_at: String,
+  )
+}
+
+pub fn list_allergies_by_member(member_id member_id: Int) {
+  let sql =
+    "?;
+
+
+SELECT id, member_id, allergen, allergy_type, reaction, severity, diagnosed_at, notes, created_at, updated_at
+FROM allergies
+WHERE member_id ="
+  #(sql, [dev.ParamInt(member_id)], list_allergies_by_member_decoder())
+}
+
+pub fn list_allergies_by_member_decoder() -> decode.Decoder(
+  ListAllergiesByMember,
+) {
+  use id <- decode.field(0, decode.int)
+  use member_id <- decode.field(1, decode.int)
+  use allergen <- decode.field(2, decode.string)
+  use allergy_type <- decode.field(3, decode.string)
+  use reaction <- decode.field(4, decode.optional(decode.string))
+  use severity <- decode.field(5, decode.string)
+  use diagnosed_at <- decode.field(6, decode.optional(decode.string))
+  use notes <- decode.field(7, decode.optional(decode.string))
+  use created_at <- decode.field(8, decode.string)
+  use updated_at <- decode.field(9, decode.string)
+  decode.success(ListAllergiesByMember(
+    id:,
+    member_id:,
+    allergen:,
+    allergy_type:,
+    reaction:,
+    severity:,
+    diagnosed_at:,
+    notes:,
+    created_at:,
+    updated_at:,
+  ))
+}
+
+pub type GetAllergy {
+  GetAllergy(
+    id: Int,
+    member_id: Int,
+    allergen: String,
+    allergy_type: String,
+    reaction: Option(String),
+    severity: String,
+    diagnosed_at: Option(String),
+    notes: Option(String),
+    created_at: String,
+    updated_at: String,
+  )
+}
+
+pub fn get_allergy(id id: Int) {
+  let sql =
+    "?;
+
+SELECT id, member_id, allergen, allergy_type, reaction, severity, diagnosed_at, notes, created_at, updated_at
+FROM allergies
+WHERE id ="
+  #(sql, [dev.ParamInt(id)], get_allergy_decoder())
+}
+
+pub fn get_allergy_decoder() -> decode.Decoder(GetAllergy) {
+  use id <- decode.field(0, decode.int)
+  use member_id <- decode.field(1, decode.int)
+  use allergen <- decode.field(2, decode.string)
+  use allergy_type <- decode.field(3, decode.string)
+  use reaction <- decode.field(4, decode.optional(decode.string))
+  use severity <- decode.field(5, decode.string)
+  use diagnosed_at <- decode.field(6, decode.optional(decode.string))
+  use notes <- decode.field(7, decode.optional(decode.string))
+  use created_at <- decode.field(8, decode.string)
+  use updated_at <- decode.field(9, decode.string)
+  decode.success(GetAllergy(
+    id:,
+    member_id:,
+    allergen:,
+    allergy_type:,
+    reaction:,
+    severity:,
+    diagnosed_at:,
+    notes:,
+    created_at:,
+    updated_at:,
+  ))
+}
+
+pub fn insert_allergy(
+  member_id member_id: Int,
+  allergen allergen: String,
+  allergy_type allergy_type: String,
+  reaction reaction: Option(String),
+  severity severity: String,
+  diagnosed_at diagnosed_at: Option(String),
+  notes notes: Option(String),
+  created_at created_at: String,
+  updated_at updated_at: String,
+) {
+  let sql =
+    "?;
+
+INSERT INTO allergies (member_id, allergen, allergy_type, reaction, severity, diagnosed_at, notes, created_at, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?,"
+  #(sql, [
+    dev.ParamInt(member_id),
+    dev.ParamString(allergen),
+    dev.ParamString(allergy_type),
+    dev.ParamNullable(option.map(reaction, fn(v) { dev.ParamString(v) })),
+    dev.ParamString(severity),
+    dev.ParamNullable(option.map(diagnosed_at, fn(v) { dev.ParamString(v) })),
+    dev.ParamNullable(option.map(notes, fn(v) { dev.ParamString(v) })),
+    dev.ParamString(created_at),
+    dev.ParamString(updated_at),
+  ])
+}
+
+pub fn update_allergy(
+  allergen allergen: String,
+  allergy_type allergy_type: String,
+  reaction reaction: Option(String),
+  severity severity: String,
+  diagnosed_at diagnosed_at: Option(String),
+  notes notes: Option(String),
+  updated_at updated_at: String,
+  id id: Int,
+) {
+  let sql =
+    ");
+
+UPDATE allergies
+SET allergen = ?, allergy_type = ?, reaction = ?, severity = ?, diagnosed_at = ?, notes = ?, updated_at = ?
+WHERE id ="
+  #(sql, [
+    dev.ParamString(allergen),
+    dev.ParamString(allergy_type),
+    dev.ParamNullable(option.map(reaction, fn(v) { dev.ParamString(v) })),
+    dev.ParamString(severity),
+    dev.ParamNullable(option.map(diagnosed_at, fn(v) { dev.ParamString(v) })),
+    dev.ParamNullable(option.map(notes, fn(v) { dev.ParamString(v) })),
+    dev.ParamString(updated_at),
+    dev.ParamInt(id),
+  ])
+}
+
+pub fn delete_allergy(id id: Int) {
+  let sql =
+    "?;
+
+DELETE FROM allergies WHERE id ="
+  #(sql, [dev.ParamInt(id)])
+}
+
+pub type ListImmunizationsByMember {
+  ListImmunizationsByMember(
+    id: Int,
+    member_id: Int,
+    vaccine_name: String,
+    administered_at: String,
+    provider_id: Option(Int),
+    lot_number: Option(String),
+    next_due_at: Option(String),
+    notes: Option(String),
+    created_at: String,
+  )
+}
+
+pub fn list_immunizations_by_member(member_id member_id: Int) {
+  let sql =
+    "?;
+
+
+SELECT id, member_id, vaccine_name, administered_at, provider_id, lot_number, next_due_at, notes, created_at
+FROM immunizations
+WHERE member_id ="
+  #(sql, [dev.ParamInt(member_id)], list_immunizations_by_member_decoder())
+}
+
+pub fn list_immunizations_by_member_decoder() -> decode.Decoder(
+  ListImmunizationsByMember,
+) {
+  use id <- decode.field(0, decode.int)
+  use member_id <- decode.field(1, decode.int)
+  use vaccine_name <- decode.field(2, decode.string)
+  use administered_at <- decode.field(3, decode.string)
+  use provider_id <- decode.field(4, decode.optional(decode.int))
+  use lot_number <- decode.field(5, decode.optional(decode.string))
+  use next_due_at <- decode.field(6, decode.optional(decode.string))
+  use notes <- decode.field(7, decode.optional(decode.string))
+  use created_at <- decode.field(8, decode.string)
+  decode.success(ListImmunizationsByMember(
+    id:,
+    member_id:,
+    vaccine_name:,
+    administered_at:,
+    provider_id:,
+    lot_number:,
+    next_due_at:,
+    notes:,
+    created_at:,
+  ))
+}
+
+pub type ListDueImmunizations {
+  ListDueImmunizations(
+    id: Int,
+    member_id: Int,
+    vaccine_name: String,
+    administered_at: String,
+    provider_id: Option(Int),
+    lot_number: Option(String),
+    next_due_at: Option(String),
+    notes: Option(String),
+    created_at: String,
+  )
+}
+
+pub fn list_due_immunizations(next_due_at next_due_at: Option(String)) {
+  let sql =
+    "?;
+
+SELECT id, member_id, vaccine_name, administered_at, provider_id, lot_number, next_due_at, notes, created_at
+FROM immunizations
+WHERE next_due_at IS NOT NULL AND next_due_at <="
+  #(
+    sql,
+    [dev.ParamNullable(option.map(next_due_at, fn(v) { dev.ParamString(v) }))],
+    list_due_immunizations_decoder(),
+  )
+}
+
+pub fn list_due_immunizations_decoder() -> decode.Decoder(ListDueImmunizations) {
+  use id <- decode.field(0, decode.int)
+  use member_id <- decode.field(1, decode.int)
+  use vaccine_name <- decode.field(2, decode.string)
+  use administered_at <- decode.field(3, decode.string)
+  use provider_id <- decode.field(4, decode.optional(decode.int))
+  use lot_number <- decode.field(5, decode.optional(decode.string))
+  use next_due_at <- decode.field(6, decode.optional(decode.string))
+  use notes <- decode.field(7, decode.optional(decode.string))
+  use created_at <- decode.field(8, decode.string)
+  decode.success(ListDueImmunizations(
+    id:,
+    member_id:,
+    vaccine_name:,
+    administered_at:,
+    provider_id:,
+    lot_number:,
+    next_due_at:,
+    notes:,
+    created_at:,
+  ))
+}
+
+pub type GetImmunization {
+  GetImmunization(
+    id: Int,
+    member_id: Int,
+    vaccine_name: String,
+    administered_at: String,
+    provider_id: Option(Int),
+    lot_number: Option(String),
+    next_due_at: Option(String),
+    notes: Option(String),
+    created_at: String,
+  )
+}
+
+pub fn get_immunization(id id: Int) {
+  let sql =
+    "?;
+
+SELECT id, member_id, vaccine_name, administered_at, provider_id, lot_number, next_due_at, notes, created_at
+FROM immunizations
+WHERE id ="
+  #(sql, [dev.ParamInt(id)], get_immunization_decoder())
+}
+
+pub fn get_immunization_decoder() -> decode.Decoder(GetImmunization) {
+  use id <- decode.field(0, decode.int)
+  use member_id <- decode.field(1, decode.int)
+  use vaccine_name <- decode.field(2, decode.string)
+  use administered_at <- decode.field(3, decode.string)
+  use provider_id <- decode.field(4, decode.optional(decode.int))
+  use lot_number <- decode.field(5, decode.optional(decode.string))
+  use next_due_at <- decode.field(6, decode.optional(decode.string))
+  use notes <- decode.field(7, decode.optional(decode.string))
+  use created_at <- decode.field(8, decode.string)
+  decode.success(GetImmunization(
+    id:,
+    member_id:,
+    vaccine_name:,
+    administered_at:,
+    provider_id:,
+    lot_number:,
+    next_due_at:,
+    notes:,
+    created_at:,
+  ))
+}
+
+pub fn insert_immunization(
+  member_id member_id: Int,
+  vaccine_name vaccine_name: String,
+  administered_at administered_at: String,
+  provider_id provider_id: Option(Int),
+  lot_number lot_number: Option(String),
+  next_due_at next_due_at: Option(String),
+  notes notes: Option(String),
+  created_at created_at: String,
+) {
+  let sql =
+    "?;
+
+INSERT INTO immunizations (member_id, vaccine_name, administered_at, provider_id, lot_number, next_due_at, notes, created_at)
+VALUES (?, ?, ?, ?, ?, ?, ?,"
+  #(sql, [
+    dev.ParamInt(member_id),
+    dev.ParamString(vaccine_name),
+    dev.ParamString(administered_at),
+    dev.ParamNullable(option.map(provider_id, fn(v) { dev.ParamInt(v) })),
+    dev.ParamNullable(option.map(lot_number, fn(v) { dev.ParamString(v) })),
+    dev.ParamNullable(option.map(next_due_at, fn(v) { dev.ParamString(v) })),
+    dev.ParamNullable(option.map(notes, fn(v) { dev.ParamString(v) })),
+    dev.ParamString(created_at),
+  ])
+}
+
+pub fn update_immunization(
+  vaccine_name vaccine_name: String,
+  administered_at administered_at: String,
+  provider_id provider_id: Option(Int),
+  lot_number lot_number: Option(String),
+  next_due_at next_due_at: Option(String),
+  notes notes: Option(String),
+  id id: Int,
+) {
+  let sql =
+    ");
+
+UPDATE immunizations
+SET vaccine_name = ?, administered_at = ?, provider_id = ?, lot_number = ?, next_due_at = ?, notes = ?
+WHERE id ="
+  #(sql, [
+    dev.ParamString(vaccine_name),
+    dev.ParamString(administered_at),
+    dev.ParamNullable(option.map(provider_id, fn(v) { dev.ParamInt(v) })),
+    dev.ParamNullable(option.map(lot_number, fn(v) { dev.ParamString(v) })),
+    dev.ParamNullable(option.map(next_due_at, fn(v) { dev.ParamString(v) })),
+    dev.ParamNullable(option.map(notes, fn(v) { dev.ParamString(v) })),
+    dev.ParamInt(id),
+  ])
+}
+
+pub fn delete_immunization(id id: Int) {
+  let sql =
+    "?;
+
+DELETE FROM immunizations WHERE id ="
+  #(sql, [dev.ParamInt(id)])
+}
+
+pub type ListInsurancePlans {
+  ListInsurancePlans(
+    id: Int,
+    plan_name: String,
+    insurer: String,
+    plan_type: String,
+    policy_number: Option(String),
+    group_number: Option(String),
+    phone: Option(String),
+    website: Option(String),
+    effective_from: Option(String),
+    effective_to: Option(String),
+    notes: Option(String),
+    created_at: String,
+    updated_at: String,
+  )
+}
+
+pub fn list_insurance_plans() {
+  let sql =
+    "?;
+
+
+SELECT id, plan_name, insurer, plan_type, policy_number, group_number, phone, website, effective_from, effective_to, notes, created_at, updated_at
+FROM insurance_pla"
+  #(sql, [], list_insurance_plans_decoder())
+}
+
+pub fn list_insurance_plans_decoder() -> decode.Decoder(ListInsurancePlans) {
+  use id <- decode.field(0, decode.int)
+  use plan_name <- decode.field(1, decode.string)
+  use insurer <- decode.field(2, decode.string)
+  use plan_type <- decode.field(3, decode.string)
+  use policy_number <- decode.field(4, decode.optional(decode.string))
+  use group_number <- decode.field(5, decode.optional(decode.string))
+  use phone <- decode.field(6, decode.optional(decode.string))
+  use website <- decode.field(7, decode.optional(decode.string))
+  use effective_from <- decode.field(8, decode.optional(decode.string))
+  use effective_to <- decode.field(9, decode.optional(decode.string))
+  use notes <- decode.field(10, decode.optional(decode.string))
+  use created_at <- decode.field(11, decode.string)
+  use updated_at <- decode.field(12, decode.string)
+  decode.success(ListInsurancePlans(
+    id:,
+    plan_name:,
+    insurer:,
+    plan_type:,
+    policy_number:,
+    group_number:,
+    phone:,
+    website:,
+    effective_from:,
+    effective_to:,
+    notes:,
+    created_at:,
+    updated_at:,
+  ))
+}
+
+pub type ListActiveInsurancePlans {
+  ListActiveInsurancePlans(
+    id: Int,
+    plan_name: String,
+    insurer: String,
+    plan_type: String,
+    policy_number: Option(String),
+    group_number: Option(String),
+    phone: Option(String),
+    website: Option(String),
+    effective_from: Option(String),
+    effective_to: Option(String),
+    notes: Option(String),
+    created_at: String,
+    updated_at: String,
+  )
+}
+
+pub fn list_active_insurance_plans() {
+  let sql =
+    "s;
+
+SELECT id, plan_name, insurer, plan_type, policy_number, group_number, phone, website, effective_from, effective_to, notes, created_at, updated_at
+FROM insurance_plans
+WHERE effective_to IS NU"
+  #(sql, [], list_active_insurance_plans_decoder())
+}
+
+pub fn list_active_insurance_plans_decoder() -> decode.Decoder(
+  ListActiveInsurancePlans,
+) {
+  use id <- decode.field(0, decode.int)
+  use plan_name <- decode.field(1, decode.string)
+  use insurer <- decode.field(2, decode.string)
+  use plan_type <- decode.field(3, decode.string)
+  use policy_number <- decode.field(4, decode.optional(decode.string))
+  use group_number <- decode.field(5, decode.optional(decode.string))
+  use phone <- decode.field(6, decode.optional(decode.string))
+  use website <- decode.field(7, decode.optional(decode.string))
+  use effective_from <- decode.field(8, decode.optional(decode.string))
+  use effective_to <- decode.field(9, decode.optional(decode.string))
+  use notes <- decode.field(10, decode.optional(decode.string))
+  use created_at <- decode.field(11, decode.string)
+  use updated_at <- decode.field(12, decode.string)
+  decode.success(ListActiveInsurancePlans(
+    id:,
+    plan_name:,
+    insurer:,
+    plan_type:,
+    policy_number:,
+    group_number:,
+    phone:,
+    website:,
+    effective_from:,
+    effective_to:,
+    notes:,
+    created_at:,
+    updated_at:,
+  ))
+}
+
+pub type GetInsurancePlan {
+  GetInsurancePlan(
+    id: Int,
+    plan_name: String,
+    insurer: String,
+    plan_type: String,
+    policy_number: Option(String),
+    group_number: Option(String),
+    phone: Option(String),
+    website: Option(String),
+    effective_from: Option(String),
+    effective_to: Option(String),
+    notes: Option(String),
+    created_at: String,
+    updated_at: String,
+  )
+}
+
+pub fn get_insurance_plan(id id: Int) {
+  let sql =
+    "L;
+
+SELECT id, plan_name, insurer, plan_type, policy_number, group_number, phone, website, effective_from, effective_to, notes, created_at, updated_at
+FROM insurance_plans
+WHERE id ="
+  #(sql, [dev.ParamInt(id)], get_insurance_plan_decoder())
+}
+
+pub fn get_insurance_plan_decoder() -> decode.Decoder(GetInsurancePlan) {
+  use id <- decode.field(0, decode.int)
+  use plan_name <- decode.field(1, decode.string)
+  use insurer <- decode.field(2, decode.string)
+  use plan_type <- decode.field(3, decode.string)
+  use policy_number <- decode.field(4, decode.optional(decode.string))
+  use group_number <- decode.field(5, decode.optional(decode.string))
+  use phone <- decode.field(6, decode.optional(decode.string))
+  use website <- decode.field(7, decode.optional(decode.string))
+  use effective_from <- decode.field(8, decode.optional(decode.string))
+  use effective_to <- decode.field(9, decode.optional(decode.string))
+  use notes <- decode.field(10, decode.optional(decode.string))
+  use created_at <- decode.field(11, decode.string)
+  use updated_at <- decode.field(12, decode.string)
+  decode.success(GetInsurancePlan(
+    id:,
+    plan_name:,
+    insurer:,
+    plan_type:,
+    policy_number:,
+    group_number:,
+    phone:,
+    website:,
+    effective_from:,
+    effective_to:,
+    notes:,
+    created_at:,
+    updated_at:,
+  ))
+}
+
+pub fn insert_insurance_plan(
+  plan_name plan_name: String,
+  insurer insurer: String,
+  plan_type plan_type: String,
+  policy_number policy_number: Option(String),
+  group_number group_number: Option(String),
+  phone phone: Option(String),
+  website website: Option(String),
+  effective_from effective_from: Option(String),
+  effective_to effective_to: Option(String),
+  notes notes: Option(String),
+  created_at created_at: String,
+  updated_at updated_at: String,
+) {
+  let sql =
+    "?;
+
+INSERT INTO insurance_plans (plan_name, insurer, plan_type, policy_number, group_number, phone, website, effective_from, effective_to, notes, created_at, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,"
+  #(sql, [
+    dev.ParamString(plan_name),
+    dev.ParamString(insurer),
+    dev.ParamString(plan_type),
+    dev.ParamNullable(option.map(policy_number, fn(v) { dev.ParamString(v) })),
+    dev.ParamNullable(option.map(group_number, fn(v) { dev.ParamString(v) })),
+    dev.ParamNullable(option.map(phone, fn(v) { dev.ParamString(v) })),
+    dev.ParamNullable(option.map(website, fn(v) { dev.ParamString(v) })),
+    dev.ParamNullable(option.map(effective_from, fn(v) { dev.ParamString(v) })),
+    dev.ParamNullable(option.map(effective_to, fn(v) { dev.ParamString(v) })),
+    dev.ParamNullable(option.map(notes, fn(v) { dev.ParamString(v) })),
+    dev.ParamString(created_at),
+    dev.ParamString(updated_at),
+  ])
+}
+
+pub fn update_insurance_plan(
+  plan_name plan_name: String,
+  insurer insurer: String,
+  plan_type plan_type: String,
+  policy_number policy_number: Option(String),
+  group_number group_number: Option(String),
+  phone phone: Option(String),
+  website website: Option(String),
+  effective_from effective_from: Option(String),
+  effective_to effective_to: Option(String),
+  notes notes: Option(String),
+  updated_at updated_at: String,
+  id id: Int,
+) {
+  let sql =
+    ");
+
+UPDATE insurance_plans
+SET plan_name = ?, insurer = ?, plan_type = ?, policy_number = ?, group_number = ?, phone = ?, website = ?, effective_from = ?, effective_to = ?, notes = ?, updated_at = ?
+WHERE id ="
+  #(sql, [
+    dev.ParamString(plan_name),
+    dev.ParamString(insurer),
+    dev.ParamString(plan_type),
+    dev.ParamNullable(option.map(policy_number, fn(v) { dev.ParamString(v) })),
+    dev.ParamNullable(option.map(group_number, fn(v) { dev.ParamString(v) })),
+    dev.ParamNullable(option.map(phone, fn(v) { dev.ParamString(v) })),
+    dev.ParamNullable(option.map(website, fn(v) { dev.ParamString(v) })),
+    dev.ParamNullable(option.map(effective_from, fn(v) { dev.ParamString(v) })),
+    dev.ParamNullable(option.map(effective_to, fn(v) { dev.ParamString(v) })),
+    dev.ParamNullable(option.map(notes, fn(v) { dev.ParamString(v) })),
+    dev.ParamString(updated_at),
+    dev.ParamInt(id),
+  ])
+}
+
+pub fn delete_insurance_plan(id id: Int) {
+  let sql =
+    "?;
+
+DELETE FROM insurance_plans WHERE id ="
+  #(sql, [dev.ParamInt(id)])
+}
+
+pub type ListInsuranceByMember {
+  ListInsuranceByMember(
+    id: Int,
+    member_id: Int,
+    insurance_plan_id: Int,
+    subscriber_id: Option(String),
+    is_primary_subscriber: Int,
+    created_at: String,
+  )
+}
+
+pub fn list_insurance_by_member(member_id member_id: Int) {
+  let sql =
+    "?;
+
+
+SELECT id, member_id, insurance_plan_id, subscriber_id, is_primary_subscriber, created_at
+FROM member_insurance
+WHERE member_id ="
+  #(sql, [dev.ParamInt(member_id)], list_insurance_by_member_decoder())
+}
+
+pub fn list_insurance_by_member_decoder() -> decode.Decoder(
+  ListInsuranceByMember,
+) {
+  use id <- decode.field(0, decode.int)
+  use member_id <- decode.field(1, decode.int)
+  use insurance_plan_id <- decode.field(2, decode.int)
+  use subscriber_id <- decode.field(3, decode.optional(decode.string))
+  use is_primary_subscriber <- decode.field(4, decode.int)
+  use created_at <- decode.field(5, decode.string)
+  decode.success(ListInsuranceByMember(
+    id:,
+    member_id:,
+    insurance_plan_id:,
+    subscriber_id:,
+    is_primary_subscriber:,
+    created_at:,
+  ))
+}
+
+pub type ListMembersByInsurancePlan {
+  ListMembersByInsurancePlan(
+    id: Int,
+    member_id: Int,
+    insurance_plan_id: Int,
+    subscriber_id: Option(String),
+    is_primary_subscriber: Int,
+    created_at: String,
+  )
+}
+
+pub fn list_members_by_insurance_plan(insurance_plan_id insurance_plan_id: Int) {
+  let sql =
+    "?;
+
+SELECT id, member_id, insurance_plan_id, subscriber_id, is_primary_subscriber, created_at
+FROM member_insurance
+WHERE insurance_plan_id ="
+  #(
+    sql,
+    [dev.ParamInt(insurance_plan_id)],
+    list_members_by_insurance_plan_decoder(),
+  )
+}
+
+pub fn list_members_by_insurance_plan_decoder() -> decode.Decoder(
+  ListMembersByInsurancePlan,
+) {
+  use id <- decode.field(0, decode.int)
+  use member_id <- decode.field(1, decode.int)
+  use insurance_plan_id <- decode.field(2, decode.int)
+  use subscriber_id <- decode.field(3, decode.optional(decode.string))
+  use is_primary_subscriber <- decode.field(4, decode.int)
+  use created_at <- decode.field(5, decode.string)
+  decode.success(ListMembersByInsurancePlan(
+    id:,
+    member_id:,
+    insurance_plan_id:,
+    subscriber_id:,
+    is_primary_subscriber:,
+    created_at:,
+  ))
+}
+
+pub type GetMemberInsurance {
+  GetMemberInsurance(
+    id: Int,
+    member_id: Int,
+    insurance_plan_id: Int,
+    subscriber_id: Option(String),
+    is_primary_subscriber: Int,
+    created_at: String,
+  )
+}
+
+pub fn get_member_insurance(id id: Int) {
+  let sql =
+    "?;
+
+SELECT id, member_id, insurance_plan_id, subscriber_id, is_primary_subscriber, created_at
+FROM member_insurance
+WHERE id ="
+  #(sql, [dev.ParamInt(id)], get_member_insurance_decoder())
+}
+
+pub fn get_member_insurance_decoder() -> decode.Decoder(GetMemberInsurance) {
+  use id <- decode.field(0, decode.int)
+  use member_id <- decode.field(1, decode.int)
+  use insurance_plan_id <- decode.field(2, decode.int)
+  use subscriber_id <- decode.field(3, decode.optional(decode.string))
+  use is_primary_subscriber <- decode.field(4, decode.int)
+  use created_at <- decode.field(5, decode.string)
+  decode.success(GetMemberInsurance(
+    id:,
+    member_id:,
+    insurance_plan_id:,
+    subscriber_id:,
+    is_primary_subscriber:,
+    created_at:,
+  ))
+}
+
+pub fn insert_member_insurance(
+  member_id member_id: Int,
+  insurance_plan_id insurance_plan_id: Int,
+  subscriber_id subscriber_id: Option(String),
+  is_primary_subscriber is_primary_subscriber: Int,
+  created_at created_at: String,
+) {
+  let sql =
+    "?;
+
+INSERT INTO member_insurance (member_id, insurance_plan_id, subscriber_id, is_primary_subscriber, created_at)
+VALUES (?, ?, ?, ?,"
+  #(sql, [
+    dev.ParamInt(member_id),
+    dev.ParamInt(insurance_plan_id),
+    dev.ParamNullable(option.map(subscriber_id, fn(v) { dev.ParamString(v) })),
+    dev.ParamInt(is_primary_subscriber),
+    dev.ParamString(created_at),
+  ])
+}
+
+pub fn update_member_insurance(
+  subscriber_id subscriber_id: Option(String),
+  is_primary_subscriber is_primary_subscriber: Int,
+  id id: Int,
+) {
+  let sql =
+    ");
+
+UPDATE member_insurance
+SET subscriber_id = ?, is_primary_subscriber = ?
+WHERE id ="
+  #(sql, [
+    dev.ParamNullable(option.map(subscriber_id, fn(v) { dev.ParamString(v) })),
+    dev.ParamInt(is_primary_subscriber),
+    dev.ParamInt(id),
+  ])
+}
+
+pub fn delete_member_insurance(id id: Int) {
+  let sql =
+    "?;
+
+DELETE FROM member_insurance WHERE id ="
+  #(sql, [dev.ParamInt(id)])
+}
+
+pub type ListEmergencyContactsByMember {
+  ListEmergencyContactsByMember(
+    id: Int,
+    member_id: Int,
+    name: String,
+    relationship: Option(String),
+    phone: String,
+    email: Option(String),
+    is_primary: Int,
+    notes: Option(String),
+    created_at: String,
+    updated_at: String,
+  )
+}
+
+pub fn list_emergency_contacts_by_member(member_id member_id: Int) {
+  let sql =
+    "?;
+
+
+SELECT id, member_id, name, relationship, phone, email, is_primary, notes, created_at, updated_at
+FROM emergency_contacts
+WHERE member_id ="
+  #(sql, [dev.ParamInt(member_id)], list_emergency_contacts_by_member_decoder())
+}
+
+pub fn list_emergency_contacts_by_member_decoder() -> decode.Decoder(
+  ListEmergencyContactsByMember,
+) {
+  use id <- decode.field(0, decode.int)
+  use member_id <- decode.field(1, decode.int)
+  use name <- decode.field(2, decode.string)
+  use relationship <- decode.field(3, decode.optional(decode.string))
+  use phone <- decode.field(4, decode.string)
+  use email <- decode.field(5, decode.optional(decode.string))
+  use is_primary <- decode.field(6, decode.int)
+  use notes <- decode.field(7, decode.optional(decode.string))
+  use created_at <- decode.field(8, decode.string)
+  use updated_at <- decode.field(9, decode.string)
+  decode.success(ListEmergencyContactsByMember(
+    id:,
+    member_id:,
+    name:,
+    relationship:,
+    phone:,
+    email:,
+    is_primary:,
+    notes:,
+    created_at:,
+    updated_at:,
+  ))
+}
+
+pub type GetEmergencyContact {
+  GetEmergencyContact(
+    id: Int,
+    member_id: Int,
+    name: String,
+    relationship: Option(String),
+    phone: String,
+    email: Option(String),
+    is_primary: Int,
+    notes: Option(String),
+    created_at: String,
+    updated_at: String,
+  )
+}
+
+pub fn get_emergency_contact(id id: Int) {
+  let sql =
+    "?;
+
+SELECT id, member_id, name, relationship, phone, email, is_primary, notes, created_at, updated_at
+FROM emergency_contacts
+WHERE id ="
+  #(sql, [dev.ParamInt(id)], get_emergency_contact_decoder())
+}
+
+pub fn get_emergency_contact_decoder() -> decode.Decoder(GetEmergencyContact) {
+  use id <- decode.field(0, decode.int)
+  use member_id <- decode.field(1, decode.int)
+  use name <- decode.field(2, decode.string)
+  use relationship <- decode.field(3, decode.optional(decode.string))
+  use phone <- decode.field(4, decode.string)
+  use email <- decode.field(5, decode.optional(decode.string))
+  use is_primary <- decode.field(6, decode.int)
+  use notes <- decode.field(7, decode.optional(decode.string))
+  use created_at <- decode.field(8, decode.string)
+  use updated_at <- decode.field(9, decode.string)
+  decode.success(GetEmergencyContact(
+    id:,
+    member_id:,
+    name:,
+    relationship:,
+    phone:,
+    email:,
+    is_primary:,
+    notes:,
+    created_at:,
+    updated_at:,
+  ))
+}
+
+pub fn insert_emergency_contact(
+  member_id member_id: Int,
+  name name: String,
+  relationship relationship: Option(String),
+  phone phone: String,
+  email email: Option(String),
+  is_primary is_primary: Int,
+  notes notes: Option(String),
+  created_at created_at: String,
+  updated_at updated_at: String,
+) {
+  let sql =
+    "?;
+
+INSERT INTO emergency_contacts (member_id, name, relationship, phone, email, is_primary, notes, created_at, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?,"
+  #(sql, [
+    dev.ParamInt(member_id),
+    dev.ParamString(name),
+    dev.ParamNullable(option.map(relationship, fn(v) { dev.ParamString(v) })),
+    dev.ParamString(phone),
+    dev.ParamNullable(option.map(email, fn(v) { dev.ParamString(v) })),
+    dev.ParamInt(is_primary),
+    dev.ParamNullable(option.map(notes, fn(v) { dev.ParamString(v) })),
+    dev.ParamString(created_at),
+    dev.ParamString(updated_at),
+  ])
+}
+
+pub fn update_emergency_contact(
+  name name: String,
+  relationship relationship: Option(String),
+  phone phone: String,
+  email email: Option(String),
+  is_primary is_primary: Int,
+  notes notes: Option(String),
+  updated_at updated_at: String,
+  id id: Int,
+) {
+  let sql =
+    ");
+
+UPDATE emergency_contacts
+SET name = ?, relationship = ?, phone = ?, email = ?, is_primary = ?, notes = ?, updated_at = ?
+WHERE id ="
+  #(sql, [
+    dev.ParamString(name),
+    dev.ParamNullable(option.map(relationship, fn(v) { dev.ParamString(v) })),
+    dev.ParamString(phone),
+    dev.ParamNullable(option.map(email, fn(v) { dev.ParamString(v) })),
+    dev.ParamInt(is_primary),
+    dev.ParamNullable(option.map(notes, fn(v) { dev.ParamString(v) })),
+    dev.ParamString(updated_at),
+    dev.ParamInt(id),
+  ])
+}
+
+pub fn delete_emergency_contact(id id: Int) {
+  let sql =
+    "?;
+
+DELETE FROM emergency_contacts WHERE id ="
+  #(sql, [dev.ParamInt(id)])
+}
+
+pub type ListDocuments {
+  ListDocuments(
+    id: Int,
+    member_id: Option(Int),
+    title: String,
+    document_type: String,
+    file_name: String,
+    file_size_bytes: Option(Int),
+    mime_type: Option(String),
+    storage_path: String,
+    uploaded_at: String,
+    notes: Option(String),
+  )
+}
+
+pub fn list_documents() {
+  let sql =
+    "?;
+
+
+SELECT id, member_id, title, document_type, file_name, file_size_bytes, mime_type, storage_path, uploaded_at, notes
+FROM documen"
+  #(sql, [], list_documents_decoder())
+}
+
+pub fn list_documents_decoder() -> decode.Decoder(ListDocuments) {
+  use id <- decode.field(0, decode.int)
+  use member_id <- decode.field(1, decode.optional(decode.int))
+  use title <- decode.field(2, decode.string)
+  use document_type <- decode.field(3, decode.string)
+  use file_name <- decode.field(4, decode.string)
+  use file_size_bytes <- decode.field(5, decode.optional(decode.int))
+  use mime_type <- decode.field(6, decode.optional(decode.string))
+  use storage_path <- decode.field(7, decode.string)
+  use uploaded_at <- decode.field(8, decode.string)
+  use notes <- decode.field(9, decode.optional(decode.string))
+  decode.success(ListDocuments(
+    id:,
+    member_id:,
+    title:,
+    document_type:,
+    file_name:,
+    file_size_bytes:,
+    mime_type:,
+    storage_path:,
+    uploaded_at:,
+    notes:,
+  ))
+}
+
+pub type ListDocumentsByMember {
+  ListDocumentsByMember(
+    id: Int,
+    member_id: Option(Int),
+    title: String,
+    document_type: String,
+    file_name: String,
+    file_size_bytes: Option(Int),
+    mime_type: Option(String),
+    storage_path: String,
+    uploaded_at: String,
+    notes: Option(String),
+  )
+}
+
+pub fn list_documents_by_member(member_id member_id: Option(Int)) {
+  let sql =
+    "s;
+
+SELECT id, member_id, title, document_type, file_name, file_size_bytes, mime_type, storage_path, uploaded_at, notes
+FROM documents
+WHERE member_id ="
+  #(
+    sql,
+    [dev.ParamNullable(option.map(member_id, fn(v) { dev.ParamInt(v) }))],
+    list_documents_by_member_decoder(),
+  )
+}
+
+pub fn list_documents_by_member_decoder() -> decode.Decoder(
+  ListDocumentsByMember,
+) {
+  use id <- decode.field(0, decode.int)
+  use member_id <- decode.field(1, decode.optional(decode.int))
+  use title <- decode.field(2, decode.string)
+  use document_type <- decode.field(3, decode.string)
+  use file_name <- decode.field(4, decode.string)
+  use file_size_bytes <- decode.field(5, decode.optional(decode.int))
+  use mime_type <- decode.field(6, decode.optional(decode.string))
+  use storage_path <- decode.field(7, decode.string)
+  use uploaded_at <- decode.field(8, decode.string)
+  use notes <- decode.field(9, decode.optional(decode.string))
+  decode.success(ListDocumentsByMember(
+    id:,
+    member_id:,
+    title:,
+    document_type:,
+    file_name:,
+    file_size_bytes:,
+    mime_type:,
+    storage_path:,
+    uploaded_at:,
+    notes:,
+  ))
+}
+
+pub type ListFamilyDocuments {
+  ListFamilyDocuments(
+    id: Int,
+    member_id: Option(Int),
+    title: String,
+    document_type: String,
+    file_name: String,
+    file_size_bytes: Option(Int),
+    mime_type: Option(String),
+    storage_path: String,
+    uploaded_at: String,
+    notes: Option(String),
+  )
+}
+
+pub fn list_family_documents() {
+  let sql =
+    "?;
+
+SELECT id, member_id, title, document_type, file_name, file_size_bytes, mime_type, storage_path, uploaded_at, notes
+FROM documents
+WHERE member_id IS NU"
+  #(sql, [], list_family_documents_decoder())
+}
+
+pub fn list_family_documents_decoder() -> decode.Decoder(ListFamilyDocuments) {
+  use id <- decode.field(0, decode.int)
+  use member_id <- decode.field(1, decode.optional(decode.int))
+  use title <- decode.field(2, decode.string)
+  use document_type <- decode.field(3, decode.string)
+  use file_name <- decode.field(4, decode.string)
+  use file_size_bytes <- decode.field(5, decode.optional(decode.int))
+  use mime_type <- decode.field(6, decode.optional(decode.string))
+  use storage_path <- decode.field(7, decode.string)
+  use uploaded_at <- decode.field(8, decode.string)
+  use notes <- decode.field(9, decode.optional(decode.string))
+  decode.success(ListFamilyDocuments(
+    id:,
+    member_id:,
+    title:,
+    document_type:,
+    file_name:,
+    file_size_bytes:,
+    mime_type:,
+    storage_path:,
+    uploaded_at:,
+    notes:,
+  ))
+}
+
+pub type GetDocument {
+  GetDocument(
+    id: Int,
+    member_id: Option(Int),
+    title: String,
+    document_type: String,
+    file_name: String,
+    file_size_bytes: Option(Int),
+    mime_type: Option(String),
+    storage_path: String,
+    uploaded_at: String,
+    notes: Option(String),
+  )
+}
+
+pub fn get_document(id id: Int) {
+  let sql =
+    "L;
+
+SELECT id, member_id, title, document_type, file_name, file_size_bytes, mime_type, storage_path, uploaded_at, notes
+FROM documents
+WHERE id ="
+  #(sql, [dev.ParamInt(id)], get_document_decoder())
+}
+
+pub fn get_document_decoder() -> decode.Decoder(GetDocument) {
+  use id <- decode.field(0, decode.int)
+  use member_id <- decode.field(1, decode.optional(decode.int))
+  use title <- decode.field(2, decode.string)
+  use document_type <- decode.field(3, decode.string)
+  use file_name <- decode.field(4, decode.string)
+  use file_size_bytes <- decode.field(5, decode.optional(decode.int))
+  use mime_type <- decode.field(6, decode.optional(decode.string))
+  use storage_path <- decode.field(7, decode.string)
+  use uploaded_at <- decode.field(8, decode.string)
+  use notes <- decode.field(9, decode.optional(decode.string))
+  decode.success(GetDocument(
+    id:,
+    member_id:,
+    title:,
+    document_type:,
+    file_name:,
+    file_size_bytes:,
+    mime_type:,
+    storage_path:,
+    uploaded_at:,
+    notes:,
+  ))
+}
+
+pub fn insert_document(
+  member_id member_id: Option(Int),
+  title title: String,
+  document_type document_type: String,
+  file_name file_name: String,
+  file_size_bytes file_size_bytes: Option(Int),
+  mime_type mime_type: Option(String),
+  storage_path storage_path: String,
+  uploaded_at uploaded_at: String,
+  notes notes: Option(String),
+) {
+  let sql =
+    "?;
+
+INSERT INTO documents (member_id, title, document_type, file_name, file_size_bytes, mime_type, storage_path, uploaded_at, notes)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?,"
+  #(sql, [
+    dev.ParamNullable(option.map(member_id, fn(v) { dev.ParamInt(v) })),
+    dev.ParamString(title),
+    dev.ParamString(document_type),
+    dev.ParamString(file_name),
+    dev.ParamNullable(option.map(file_size_bytes, fn(v) { dev.ParamInt(v) })),
+    dev.ParamNullable(option.map(mime_type, fn(v) { dev.ParamString(v) })),
+    dev.ParamString(storage_path),
+    dev.ParamString(uploaded_at),
+    dev.ParamNullable(option.map(notes, fn(v) { dev.ParamString(v) })),
+  ])
+}
+
+pub fn update_document(
+  member_id member_id: Option(Int),
+  title title: String,
+  document_type document_type: String,
+  file_name file_name: String,
+  file_size_bytes file_size_bytes: Option(Int),
+  mime_type mime_type: Option(String),
+  storage_path storage_path: String,
+  notes notes: Option(String),
+  id id: Int,
+) {
+  let sql =
+    ");
+
+UPDATE documents
+SET member_id = ?, title = ?, document_type = ?, file_name = ?, file_size_bytes = ?, mime_type = ?, storage_path = ?, notes = ?
+WHERE id ="
+  #(sql, [
+    dev.ParamNullable(option.map(member_id, fn(v) { dev.ParamInt(v) })),
+    dev.ParamString(title),
+    dev.ParamString(document_type),
+    dev.ParamString(file_name),
+    dev.ParamNullable(option.map(file_size_bytes, fn(v) { dev.ParamInt(v) })),
+    dev.ParamNullable(option.map(mime_type, fn(v) { dev.ParamString(v) })),
+    dev.ParamString(storage_path),
+    dev.ParamNullable(option.map(notes, fn(v) { dev.ParamString(v) })),
+    dev.ParamInt(id),
+  ])
+}
+
+pub fn delete_document(id id: Int) {
+  let sql =
+    "?;
+
+DELETE FROM documents WHERE id ="
+  #(sql, [dev.ParamInt(id)])
 }

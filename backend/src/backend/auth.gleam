@@ -211,14 +211,14 @@ pub fn handle_register(
                                 process.call(family_actor, 5000, fn(reply_to) {
                                   family_db_actor.Exec(
                                     query: family_sql.insert_member(
-                                      Some(email),
-                                      first_name,
-                                      last_name,
-                                      None,
-                                      "admin",
-                                      0,
-                                      now,
-                                      now,
+                                      email: Some(email),
+                                      first_name: first_name,
+                                      last_name: last_name,
+                                      date_of_birth: None,
+                                      role: "admin",
+                                      is_managed: 0,
+                                      created_at: now,
+                                      updated_at: now,
                                     ),
                                     reply_to:,
                                   )
