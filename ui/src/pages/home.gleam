@@ -16,7 +16,7 @@ import modem
 
 pub type AuthState {
   Loading
-  Authenticated(email: String)
+  Authenticated(email: String, role: String)
   Unauthenticated
 }
 
@@ -25,6 +25,7 @@ pub type Model {
     auth_state: AuthState,
     members: List(MemberWithData),
     search_query: String,
+    dropdown_open: Bool,
   )
 }
 
@@ -37,6 +38,7 @@ pub type Msg {
   SearchChanged(String)
   SignOut
   NavigateTo(String)
+  ToggleDropdown
 }
 
 pub fn init() -> #(Model, Effect(Msg)) {
@@ -45,6 +47,7 @@ pub fn init() -> #(Model, Effect(Msg)) {
       auth_state: Loading,
       members: mock_members.all_members(),
       search_query: "",
+      dropdown_open: False,
     ),
     check_session_effect(),
   )
@@ -65,7 +68,10 @@ fn check_session_effect() -> Effect(Msg) {
 pub fn update(model: Model, msg: Msg) -> #(Model, Effect(Msg)) {
   case msg {
     GotSession(Ok(data)) -> #(
-      Model(..model, auth_state: Authenticated(email: data.email)),
+      Model(
+        ..model,
+        auth_state: Authenticated(email: data.email, role: data.role),
+      ),
       effect.none(),
     )
     GotSession(Error(_)) -> #(
@@ -74,10 +80,14 @@ pub fn update(model: Model, msg: Msg) -> #(Model, Effect(Msg)) {
     )
     SearchChanged(q) -> #(Model(..model, search_query: q), effect.none())
     SignOut -> #(
-      Model(..model, auth_state: Unauthenticated),
+      Model(..model, auth_state: Unauthenticated, dropdown_open: False),
       modem.replace("/sign-in", None, None),
     )
     NavigateTo(path) -> #(model, modem.push(path, None, None))
+    ToggleDropdown -> #(
+      Model(..model, dropdown_open: !model.dropdown_open),
+      effect.none(),
+    )
   }
 }
 
@@ -93,13 +103,17 @@ pub fn view(model: Model) -> Element(Msg) {
         [element.text("Loading...")],
       )
     Unauthenticated -> html.div([], [])
-    Authenticated(_) -> authenticated_view(model)
+    Authenticated(email: _, role: _) -> authenticated_view(model)
   }
 }
 
 fn authenticated_view(model: Model) -> Element(Msg) {
+  let #(email, role) = case model.auth_state {
+    Authenticated(email, role) -> #(email, role)
+    _ -> #("", "member")
+  }
   html.div([attribute.class("min-h-screen bg-gray-50")], [
-    navbar.navbar(SignOut),
+    navbar.navbar(email, role, model.dropdown_open, ToggleDropdown, SignOut),
     html.main([attribute.class("max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8")], [
       search_and_add_bar(model),
       member_grid(model),

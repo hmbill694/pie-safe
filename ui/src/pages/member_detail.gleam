@@ -30,6 +30,8 @@ pub type Msg {
   EmergencyContactMsg(emergency_contacts.Msg)
   DocumentMsg(documents.Msg)
   NavigateTo(String)
+  ToggleDropdown
+  SignOut
 }
 
 pub fn init(maybe_id: Option(Int)) -> #(types.Model, Effect(Msg)) {
@@ -69,12 +71,23 @@ pub fn update(model: types.Model, msg: Msg) -> #(types.Model, Effect(Msg)) {
     )
     DocumentMsg(sub_msg) -> #(documents.update(model, sub_msg), effect.none())
     NavigateTo(path) -> #(model, modem.push(path, None, None))
+    ToggleDropdown -> #(
+      types.Model(..model, dropdown_open: !model.dropdown_open),
+      effect.none(),
+    )
+    SignOut -> #(model, modem.replace("/sign-in", None, None))
   }
 }
 
 pub fn view(model: types.Model) -> Element(Msg) {
   html.div([attribute.class("min-h-screen bg-gray-50")], [
-    navbar.navbar(NavigateTo("/home")),
+    navbar.navbar(
+      model.auth_email,
+      model.auth_role,
+      model.dropdown_open,
+      ToggleDropdown,
+      SignOut,
+    ),
     html.main([attribute.class("max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8")], [
       page_header(model),
       element.map(core_info.view(model), CoreInfoMsg),

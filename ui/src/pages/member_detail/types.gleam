@@ -42,6 +42,9 @@ pub type Model {
     draft_emergency_contact: EmergencyContact,
     draft_document: Document,
     next_id: Int,
+    dropdown_open: Bool,
+    auth_email: String,
+    auth_role: String,
   )
 }
 
@@ -130,5 +133,8 @@ pub fn model_from_member_with_data(mwd: MemberWithData, is_new: Bool) -> Model {
     draft_emergency_contact: blank_emergency_contact(),
     draft_document: blank_document(),
     next_id: 100,
+    dropdown_open: False,
+    auth_email: "",
+    auth_role: "member",
   )
 }
