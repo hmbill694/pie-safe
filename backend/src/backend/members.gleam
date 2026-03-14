@@ -14,7 +14,7 @@ import gleam/http/request
 import gleam/http/response
 import gleam/json
 import gleam/list
-import gleam/option.{Some}
+import gleam/option.{type Option, None, Some}
 import gleam/result
 import gleam/time/calendar
 import gleam/time/timestamp
@@ -161,6 +161,138 @@ fn unwrap_response(
   }
 }
 
+// ── Inline JOIN row types ────────────────────────────────────────────────────
+
+type MedicationRow {
+  MedicationRow(
+    id: Int,
+    name: String,
+    dosage: Option(String),
+    frequency: Option(String),
+    prescribing_provider: Option(String),
+  )
+}
+
+type ImmunizationRow {
+  ImmunizationRow(
+    id: Int,
+    vaccine_name: String,
+    administered_at: String,
+    administered_by: Option(String),
+  )
+}
+
+type InsuranceRow {
+  InsuranceRow(
+    id: Int,
+    provider_name: String,
+    policy_number: Option(String),
+    group_number: Option(String),
+    plan_type: String,
+  )
+}
+
+type ProviderRow {
+  ProviderRow(
+    id: Int,
+    name: String,
+    specialty: Option(String),
+    phone: Option(String),
+    address: Option(String),
+  )
+}
+
+fn medication_row_decoder() -> decode.Decoder(MedicationRow) {
+  use id <- decode.field(0, decode.int)
+  use name <- decode.field(1, decode.string)
+  use dosage <- decode.field(2, decode.optional(decode.string))
+  use frequency <- decode.field(3, decode.optional(decode.string))
+  use prescribing_provider <- decode.field(4, decode.optional(decode.string))
+  decode.success(MedicationRow(
+    id:,
+    name:,
+    dosage:,
+    frequency:,
+    prescribing_provider:,
+  ))
+}
+
+fn immunization_row_decoder() -> decode.Decoder(ImmunizationRow) {
+  use id <- decode.field(0, decode.int)
+  use vaccine_name <- decode.field(1, decode.string)
+  use administered_at <- decode.field(2, decode.string)
+  use administered_by <- decode.field(3, decode.optional(decode.string))
+  decode.success(ImmunizationRow(
+    id:,
+    vaccine_name:,
+    administered_at:,
+    administered_by:,
+  ))
+}
+
+fn insurance_row_decoder() -> decode.Decoder(InsuranceRow) {
+  use id <- decode.field(0, decode.int)
+  use provider_name <- decode.field(1, decode.string)
+  use policy_number <- decode.field(2, decode.optional(decode.string))
+  use group_number <- decode.field(3, decode.optional(decode.string))
+  use plan_type <- decode.field(4, decode.string)
+  decode.success(InsuranceRow(
+    id:,
+    provider_name:,
+    policy_number:,
+    group_number:,
+    plan_type:,
+  ))
+}
+
+fn provider_row_decoder() -> decode.Decoder(ProviderRow) {
+  use id <- decode.field(0, decode.int)
+  use name <- decode.field(1, decode.string)
+  use specialty <- decode.field(2, decode.optional(decode.string))
+  use phone <- decode.field(3, decode.optional(decode.string))
+  use address <- decode.field(4, decode.optional(decode.string))
+  decode.success(ProviderRow(id:, name:, specialty:, phone:, address:))
+}
+
+// ── Inline JOIN query functions ──
+
+fn medications_by_member_joined(member_id: Int) {
+  let sql =
+    "SELECT mm.id, m.name, m.dosage, mm.frequency, p.name
+     FROM member_medications mm
+     JOIN medications m ON mm.medication_id = m.id
+     LEFT JOIN providers p ON mm.prescribing_provider_id = p.id
+     WHERE mm.member_id = ?"
+  #(sql, [dev.ParamInt(member_id)], medication_row_decoder())
+}
+
+fn immunizations_by_member_joined(member_id: Int) {
+  let sql =
+    "SELECT i.id, i.vaccine_name, i.administered_at, p.name
+     FROM immunizations i
+     LEFT JOIN providers p ON i.provider_id = p.id
+     WHERE i.member_id = ?"
+  #(sql, [dev.ParamInt(member_id)], immunization_row_decoder())
+}
+
+fn insurance_by_member_joined(member_id: Int) {
+  let sql =
+    "SELECT mi.id, ip.insurer, ip.policy_number, ip.group_number, ip.plan_type
+     FROM member_insurance mi
+     JOIN insurance_plans ip ON mi.insurance_plan_id = ip.id
+     WHERE mi.member_id = ?"
+  #(sql, [dev.ParamInt(member_id)], insurance_row_decoder())
+}
+
+fn providers_by_member_joined(member_id: Int) {
+  let sql =
+    "SELECT p.id, p.name, p.specialty, p.phone, p.address
+     FROM member_providers mp
+     JOIN providers p ON mp.provider_id = p.id
+     WHERE mp.member_id = ?"
+  #(sql, [dev.ParamInt(member_id)], provider_row_decoder())
+}
+
 // ── JSON encoders ─────────────────────────────────────────────────────────────
 
 fn encode_member(m: family_sql.ListMembers) -> json.Json {
@@ -292,6 +424,78 @@ fn encode_document(d: family_sql.ListDocumentsByMember) -> json.Json {
   ])
 }
 
+fn encode_allergy_flat(a: family_sql.ListAllergiesByMember) -> json.Json {
+  json.object([
+    #("id", json.int(a.id)),
+    #("allergen", json.string(a.allergen)),
+    #("allergy_type", json.string(a.allergy_type)),
+    #("severity", json.string(a.severity)),
+    #("notes", json.string(option.unwrap(a.notes, ""))),
+  ])
+}
+
+fn encode_medication_row(m: MedicationRow) -> json.Json {
+  json.object([
+    #("id", json.int(m.id)),
+    #("name", json.string(m.name)),
+    #("dosage", json.string(option.unwrap(m.dosage, ""))),
+    #("frequency", json.string(option.unwrap(m.frequency, ""))),
+    #(
+      "prescribing_provider",
+      json.string(option.unwrap(m.prescribing_provider, "")),
+    ),
+  ])
+}
+
+fn encode_immunization_row(i: ImmunizationRow) -> json.Json {
+  json.object([
+    #("id", json.int(i.id)),
+    #("vaccine_name", json.string(i.vaccine_name)),
+    #("administered_at", json.string(i.administered_at)),
+    #("administered_by", json.string(option.unwrap(i.administered_by, ""))),
+  ])
+}
+
+fn encode_insurance_row(ins: InsuranceRow) -> json.Json {
+  json.object([
+    #("id", json.int(ins.id)),
+    #("provider_name", json.string(ins.provider_name)),
+    #("policy_number", json.string(option.unwrap(ins.policy_number, ""))),
+    #("group_number", json.string(option.unwrap(ins.group_number, ""))),
+    #("plan_type", json.string(ins.plan_type)),
+  ])
+}
+
+fn encode_provider_row(p: ProviderRow) -> json.Json {
+  json.object([
+    #("id", json.int(p.id)),
+    #("name", json.string(p.name)),
+    #("specialty", json.string(option.unwrap(p.specialty, ""))),
+    #("phone", json.string(option.unwrap(p.phone, ""))),
+    #("address", json.string(option.unwrap(p.address, ""))),
+  ])
+}
+
+fn encode_emergency_contact_flat(
+  ec: family_sql.ListEmergencyContactsByMember,
+) -> json.Json {
+  json.object([
+    #("id", json.int(ec.id)),
+    #("name", json.string(ec.name)),
+    #("relationship", json.string(option.unwrap(ec.relationship, ""))),
+    #("phone", json.string(ec.phone)),
+  ])
+}
+
+fn encode_document_flat(d: family_sql.ListDocumentsByMember) -> json.Json {
+  json.object([
+    #("id", json.int(d.id)),
+    #("name", json.string(d.title)),
+    #("document_type", json.string(d.document_type)),
+    #("notes", json.string(option.unwrap(d.notes, ""))),
+  ])
+}
+
 // ── Members (core) handlers ───────────────────────────────────────────────────
 
 pub fn handle_list_members(
@@ -327,20 +531,14 @@ pub fn handle_get_member(
     ))
     use medications <- result.try(run_query(
       actor,
-      family_sql.list_medications_by_member(member_id: id),
+      medications_by_member_joined(id),
     ))
     use immunizations <- result.try(run_query(
       actor,
-      family_sql.list_immunizations_by_member(member_id: id),
+      immunizations_by_member_joined(id),
     ))
-    use insurance <- result.try(run_query(
-      actor,
-      family_sql.list_insurance_by_member(member_id: id),
-    ))
-    use providers <- result.try(run_query(
-      actor,
-      family_sql.list_providers_by_member(member_id: id),
-    ))
+    use insurance <- result.try(run_query(actor, insurance_by_member_joined(id)))
+    use providers <- result.try(run_query(actor, providers_by_member_joined(id)))
     use emergency_contacts <- result.try(run_query(
       actor,
       family_sql.list_emergency_contacts_by_member(member_id: id),
@@ -351,16 +549,16 @@ pub fn handle_get_member(
     ))
     json.object([
       #("member", encode_get_member(member)),
-      #("allergies", json.array(allergies, encode_allergy)),
-      #("medications", json.array(medications, encode_member_medication)),
-      #("immunizations", json.array(immunizations, encode_immunization)),
-      #("insurance", json.array(insurance, encode_insurance)),
-      #("providers", json.array(providers, encode_provider_link)),
+      #("allergies", json.array(allergies, encode_allergy_flat)),
+      #("medications", json.array(medications, encode_medication_row)),
+      #("immunizations", json.array(immunizations, encode_immunization_row)),
+      #("insurance", json.array(insurance, encode_insurance_row)),
+      #("providers", json.array(providers, encode_provider_row)),
       #(
         "emergency_contacts",
-        json.array(emergency_contacts, encode_emergency_contact),
+        json.array(emergency_contacts, encode_emergency_contact_flat),
       ),
-      #("documents", json.array(documents, encode_document)),
+      #("documents", json.array(documents, encode_document_flat)),
     ])
     |> json.to_string
     |> json_response(200, _)

@@ -1,5 +1,5 @@
 import components/navbar
-import data/mock_members.{type MemberWithData}
+import data/mock_members
 import ffi/browser
 import gleam/dynamic/decode
 import gleam/int
@@ -20,10 +20,16 @@ pub type AuthState {
   Unauthenticated
 }
 
+pub type MembersState {
+  MembersLoading
+  MembersLoaded(List(mock_members.MemberWithData))
+  MembersError(String)
+}
+
 pub type Model {
   Model(
     auth_state: AuthState,
-    members: List(MemberWithData),
+    members_state: MembersState,
     search_query: String,
     dropdown_open: Bool,
   )
@@ -35,6 +41,7 @@ pub type SessionData {
 
 pub type Msg {
   GotSession(Result(SessionData, lustre_http.HttpError))
+  GotMembers(Result(List(mock_members.MemberWithData), lustre_http.HttpError))
   SearchChanged(String)
   SignOut
   NavigateTo(String)
@@ -45,11 +52,11 @@ pub fn init() -> #(Model, Effect(Msg)) {
   #(
     Model(
       auth_state: Loading,
-      members: mock_members.all_members(),
+      members_state: MembersLoading,
       search_query: "",
       dropdown_open: False,
     ),
-    check_session_effect(),
+    effect.batch([check_session_effect(), fetch_members_effect()]),
   )
 }
 
@@ -65,6 +72,33 @@ fn check_session_effect() -> Effect(Msg) {
   )
 }
 
+fn fetch_members_effect() -> Effect(Msg) {
+  let decoder = {
+    use members <- decode.field(
+      "members",
+      decode.list(mock_members.member_decoder()),
+    )
+    decode.success(
+      list.map(members, fn(member) {
+        mock_members.MemberWithData(
+          member:,
+          allergies: [],
+          medications: [],
+          immunizations: [],
+          insurance_policies: [],
+          providers: [],
+          emergency_contacts: [],
+          documents: [],
+        )
+      }),
+    )
+  }
+  lustre_http.get(
+    browser.origin() <> "/api/members",
+    lustre_http.expect_json(decoder, GotMembers),
+  )
+}
+
 pub fn update(model: Model, msg: Msg) -> #(Model, Effect(Msg)) {
   case msg {
     GotSession(Ok(data)) -> #(
@@ -77,6 +111,14 @@ pub fn update(model: Model, msg: Msg) -> #(Model, Effect(Msg)) {
     GotSession(Error(_)) -> #(
       Model(..model, auth_state: Unauthenticated),
       modem.replace("/sign-in", None, None),
+    )
+    GotMembers(Ok(members)) -> #(
+      Model(..model, members_state: MembersLoaded(members)),
+      effect.none(),
+    )
+    GotMembers(Error(_)) -> #(
+      Model(..model, members_state: MembersError("Failed to load members")),
+      effect.none(),
     )
     SearchChanged(q) -> #(Model(..model, search_query: q), effect.none())
     SignOut -> #(
@@ -145,19 +187,32 @@ fn search_and_add_bar(model: Model) -> Element(Msg) {
 }
 
 fn member_grid(model: Model) -> Element(Msg) {
-  let q = string.lowercase(model.search_query)
-  let filtered =
-    list.filter(model.members, fn(mwd) {
-      string.contains(string.lowercase(mwd.member.first_name), q)
-      || string.contains(string.lowercase(mwd.member.last_name), q)
-    })
-  html.div(
-    [attribute.class("grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4")],
-    list.map(filtered, member_card),
-  )
+  let grid_class =
+    attribute.class("grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4")
+  case model.members_state {
+    MembersLoading ->
+      html.div([grid_class], [
+        html.p([attribute.class("text-gray-500 col-span-3")], [
+          element.text("Loading members..."),
+        ]),
+      ])
+    MembersError(msg) ->
+      html.div([grid_class], [
+        html.p([attribute.class("text-red-600 col-span-3")], [element.text(msg)]),
+      ])
+    MembersLoaded(members) -> {
+      let q = string.lowercase(model.search_query)
+      let filtered =
+        list.filter(members, fn(mwd) {
+          string.contains(string.lowercase(mwd.member.first_name), q)
+          || string.contains(string.lowercase(mwd.member.last_name), q)
+        })
+      html.div([grid_class], list.map(filtered, member_card))
+    }
+  }
 }
 
-fn member_card(mwd: MemberWithData) -> Element(Msg) {
+fn member_card(mwd: mock_members.MemberWithData) -> Element(Msg) {
   let role_badge_class = case mwd.member.role {
     mock_members.Admin ->
       "text-xs font-medium px-2 py-0.5 rounded-full bg-teal-100 text-teal-700"

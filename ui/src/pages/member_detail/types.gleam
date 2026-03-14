@@ -6,6 +6,12 @@ import data/mock_members.{
 }
 import gleam/option.{type Option, None}
 
+pub type LoadState {
+  Loading
+  Loaded
+  LoadError(message: String)
+}
+
 pub type EditTarget {
   EditingAllergy(id: Int)
   EditingMedication(id: Int)
@@ -27,6 +33,7 @@ pub type Model {
   Model(
     member: MemberWithData,
     is_new: Bool,
+    load_state: LoadState,
     editing_item: Option(EditTarget),
     draft_first_name: String,
     draft_last_name: String,
@@ -114,10 +121,15 @@ pub fn blank_document() -> Document {
   Document(id: 0, name: "", document_type: "", notes: "")
 }
 
-pub fn model_from_member_with_data(mwd: MemberWithData, is_new: Bool) -> Model {
+pub fn model_from_member_with_data(
+  mwd: MemberWithData,
+  is_new: Bool,
+  load_state: LoadState,
+) -> Model {
   Model(
     member: mwd,
     is_new: is_new,
+    load_state: load_state,
     editing_item: None,
     draft_first_name: mwd.member.first_name,
     draft_last_name: mwd.member.last_name,

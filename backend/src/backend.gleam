@@ -2,6 +2,7 @@ import backend/auth
 import backend/config
 import backend/db_evictor
 import backend/family_db_supervisor
+import backend/logger
 import backend/members
 import backend/registry_actor
 import gleam/bytes_tree
@@ -18,6 +19,13 @@ import gleam/result
 import gleam/string
 import mist.{type Connection, type ResponseData}
 
+type TimeUnit {
+  Millisecond
+}
+
+@external(erlang, "erlang", "monotonic_time")
+fn monotonic_time_ms(unit: TimeUnit) -> Int
+
 const index_html = "<!DOCTYPE html>
 <html lang=\"en\">
   <head>
@@ -32,7 +40,58 @@ const index_html = "<!DOCTYPE html>
   </body>
 </html>"
 
+fn method_to_string(method: http.Method) -> String {
+  case method {
+    http.Get -> "GET"
+    http.Post -> "POST"
+    http.Put -> "PUT"
+    http.Delete -> "DELETE"
+    http.Patch -> "PATCH"
+    http.Head -> "HEAD"
+    http.Options -> "OPTIONS"
+    _ -> "UNKNOWN"
+  }
+}
+
+fn log_request(
+  handler: fn(Request(Connection)) -> Response(ResponseData),
+  req: Request(Connection),
+) -> Response(ResponseData) {
+  let method_str = method_to_string(req.method)
+  let path_str = req.path
+
+  logger.log_info(method_str <> " " <> path_str)
+
+  let start_ms = monotonic_time_ms(Millisecond)
+  let response = handler(req)
+  let end_ms = monotonic_time_ms(Millisecond)
+  let duration = end_ms - start_ms
+
+  let status = response.status
+  let status_str = int.to_string(status)
+  let dur_str = int.to_string(duration) <> "ms"
+  let full_line =
+    method_str
+    <> " "
+    <> path_str
+    <> " → "
+    <> status_str
+    <> " ("
+    <> dur_str
+    <> ")"
+  let short_line = method_str <> " " <> path_str <> " → " <> status_str
+
+  case status {
+    s if s >= 500 -> logger.log_error(short_line)
+    s if s >= 400 -> logger.log_warn(full_line)
+    _ -> logger.log_info(full_line)
+  }
+
+  response
+}
+
 pub fn main() {
+  logger.configure()
   let cfg = config.load()
 
   let registry_name = process.new_name(prefix: "registry_actor")
@@ -64,315 +123,311 @@ pub fn main() {
     response.new(404)
     |> response.set_body(mist.Bytes(bytes_tree.from_string("Not found")))
 
-  let assert Ok(_) =
-    fn(req: Request(Connection)) -> Response(ResponseData) {
-      case request.path_segments(req) {
-        [] ->
-          response.new(200)
-          |> response.set_header("content-type", "text/html; charset=utf-8")
-          |> response.set_body(mist.Bytes(bytes_tree.from_string(index_html)))
+  let handler = fn(req: Request(Connection)) -> Response(ResponseData) {
+    case request.path_segments(req) {
+      [] ->
+        response.new(200)
+        |> response.set_header("content-type", "text/html; charset=utf-8")
+        |> response.set_body(mist.Bytes(bytes_tree.from_string(index_html)))
 
-        ["static", ..rest] -> serve_static(rest, not_found)
+      ["static", ..rest] -> serve_static(rest, not_found)
 
-        ["api", "auth", "register"] ->
-          case req.method {
-            http.Post -> auth.handle_register(req, ctx)
-            _ -> not_found
-          }
+      ["api", "auth", "register"] ->
+        case req.method {
+          http.Post -> auth.handle_register(req, ctx)
+          _ -> not_found
+        }
 
-        ["api", "auth", "magic-link"] ->
-          case req.method {
-            http.Post -> auth.handle_magic_link(req, ctx)
-            _ -> not_found
-          }
+      ["api", "auth", "magic-link"] ->
+        case req.method {
+          http.Post -> auth.handle_magic_link(req, ctx)
+          _ -> not_found
+        }
 
-        ["api", "auth", "verify"] ->
-          case req.method {
-            http.Get -> auth.handle_verify(req, ctx)
-            _ -> not_found
-          }
+      ["api", "auth", "verify"] ->
+        case req.method {
+          http.Get -> auth.handle_verify(req, ctx)
+          _ -> not_found
+        }
 
-        ["api", "auth", "me"] ->
-          case req.method {
-            http.Get -> auth.handle_me(req, ctx)
-            _ -> not_found
-          }
+      ["api", "auth", "me"] ->
+        case req.method {
+          http.Get -> auth.handle_me(req, ctx)
+          _ -> not_found
+        }
 
-        ["api", "members"] ->
-          case req.method {
-            http.Get -> members.handle_list_members(req, members_ctx)
-            http.Post -> members.handle_create_member(req, members_ctx)
-            _ -> not_found
-          }
+      ["api", "members"] ->
+        case req.method {
+          http.Get -> members.handle_list_members(req, members_ctx)
+          http.Post -> members.handle_create_member(req, members_ctx)
+          _ -> not_found
+        }
 
-        ["api", "members", id_str] ->
-          case int.parse(id_str) {
-            Error(_) -> not_found
-            Ok(id) ->
-              case req.method {
-                http.Get -> members.handle_get_member(req, members_ctx, id)
-                http.Put -> members.handle_update_member(req, members_ctx, id)
-                http.Delete ->
-                  members.handle_delete_member(req, members_ctx, id)
-                _ -> not_found
-              }
-          }
+      ["api", "members", id_str] ->
+        case int.parse(id_str) {
+          Error(_) -> not_found
+          Ok(id) ->
+            case req.method {
+              http.Get -> members.handle_get_member(req, members_ctx, id)
+              http.Put -> members.handle_update_member(req, members_ctx, id)
+              http.Delete -> members.handle_delete_member(req, members_ctx, id)
+              _ -> not_found
+            }
+        }
 
-        ["api", "members", id_str, "allergies"] ->
-          case int.parse(id_str) {
-            Error(_) -> not_found
-            Ok(member_id) ->
-              case req.method {
-                http.Post ->
-                  members.handle_create_allergy(req, members_ctx, member_id)
-                _ -> not_found
-              }
-          }
+      ["api", "members", id_str, "allergies"] ->
+        case int.parse(id_str) {
+          Error(_) -> not_found
+          Ok(member_id) ->
+            case req.method {
+              http.Post ->
+                members.handle_create_allergy(req, members_ctx, member_id)
+              _ -> not_found
+            }
+        }
 
-        ["api", "members", id_str, "allergies", aid_str] ->
-          case int.parse(id_str), int.parse(aid_str) {
-            Ok(member_id), Ok(allergy_id) ->
-              case req.method {
-                http.Put ->
-                  members.handle_update_allergy(
-                    req,
-                    members_ctx,
-                    member_id,
-                    allergy_id,
-                  )
-                http.Delete ->
-                  members.handle_delete_allergy(
-                    req,
-                    members_ctx,
-                    member_id,
-                    allergy_id,
-                  )
-                _ -> not_found
-              }
-            _, _ -> not_found
-          }
+      ["api", "members", id_str, "allergies", aid_str] ->
+        case int.parse(id_str), int.parse(aid_str) {
+          Ok(member_id), Ok(allergy_id) ->
+            case req.method {
+              http.Put ->
+                members.handle_update_allergy(
+                  req,
+                  members_ctx,
+                  member_id,
+                  allergy_id,
+                )
+              http.Delete ->
+                members.handle_delete_allergy(
+                  req,
+                  members_ctx,
+                  member_id,
+                  allergy_id,
+                )
+              _ -> not_found
+            }
+          _, _ -> not_found
+        }
 
-        ["api", "members", id_str, "medications"] ->
-          case int.parse(id_str) {
-            Error(_) -> not_found
-            Ok(member_id) ->
-              case req.method {
-                http.Post ->
-                  members.handle_create_medication(req, members_ctx, member_id)
-                _ -> not_found
-              }
-          }
+      ["api", "members", id_str, "medications"] ->
+        case int.parse(id_str) {
+          Error(_) -> not_found
+          Ok(member_id) ->
+            case req.method {
+              http.Post ->
+                members.handle_create_medication(req, members_ctx, member_id)
+              _ -> not_found
+            }
+        }
 
-        ["api", "members", id_str, "medications", mid_str] ->
-          case int.parse(id_str), int.parse(mid_str) {
-            Ok(member_id), Ok(med_id) ->
-              case req.method {
-                http.Put ->
-                  members.handle_update_medication(
-                    req,
-                    members_ctx,
-                    member_id,
-                    med_id,
-                  )
-                http.Delete ->
-                  members.handle_delete_medication(
-                    req,
-                    members_ctx,
-                    member_id,
-                    med_id,
-                  )
-                _ -> not_found
-              }
-            _, _ -> not_found
-          }
+      ["api", "members", id_str, "medications", mid_str] ->
+        case int.parse(id_str), int.parse(mid_str) {
+          Ok(member_id), Ok(med_id) ->
+            case req.method {
+              http.Put ->
+                members.handle_update_medication(
+                  req,
+                  members_ctx,
+                  member_id,
+                  med_id,
+                )
+              http.Delete ->
+                members.handle_delete_medication(
+                  req,
+                  members_ctx,
+                  member_id,
+                  med_id,
+                )
+              _ -> not_found
+            }
+          _, _ -> not_found
+        }
 
-        ["api", "members", id_str, "immunizations"] ->
-          case int.parse(id_str) {
-            Error(_) -> not_found
-            Ok(member_id) ->
-              case req.method {
-                http.Post ->
-                  members.handle_create_immunization(
-                    req,
-                    members_ctx,
-                    member_id,
-                  )
-                _ -> not_found
-              }
-          }
+      ["api", "members", id_str, "immunizations"] ->
+        case int.parse(id_str) {
+          Error(_) -> not_found
+          Ok(member_id) ->
+            case req.method {
+              http.Post ->
+                members.handle_create_immunization(req, members_ctx, member_id)
+              _ -> not_found
+            }
+        }
 
-        ["api", "members", id_str, "immunizations", iid_str] ->
-          case int.parse(id_str), int.parse(iid_str) {
-            Ok(member_id), Ok(imm_id) ->
-              case req.method {
-                http.Put ->
-                  members.handle_update_immunization(
-                    req,
-                    members_ctx,
-                    member_id,
-                    imm_id,
-                  )
-                http.Delete ->
-                  members.handle_delete_immunization(
-                    req,
-                    members_ctx,
-                    member_id,
-                    imm_id,
-                  )
-                _ -> not_found
-              }
-            _, _ -> not_found
-          }
+      ["api", "members", id_str, "immunizations", iid_str] ->
+        case int.parse(id_str), int.parse(iid_str) {
+          Ok(member_id), Ok(imm_id) ->
+            case req.method {
+              http.Put ->
+                members.handle_update_immunization(
+                  req,
+                  members_ctx,
+                  member_id,
+                  imm_id,
+                )
+              http.Delete ->
+                members.handle_delete_immunization(
+                  req,
+                  members_ctx,
+                  member_id,
+                  imm_id,
+                )
+              _ -> not_found
+            }
+          _, _ -> not_found
+        }
 
-        ["api", "members", id_str, "insurance"] ->
-          case int.parse(id_str) {
-            Error(_) -> not_found
-            Ok(member_id) ->
-              case req.method {
-                http.Post ->
-                  members.handle_create_insurance(req, members_ctx, member_id)
-                _ -> not_found
-              }
-          }
+      ["api", "members", id_str, "insurance"] ->
+        case int.parse(id_str) {
+          Error(_) -> not_found
+          Ok(member_id) ->
+            case req.method {
+              http.Post ->
+                members.handle_create_insurance(req, members_ctx, member_id)
+              _ -> not_found
+            }
+        }
 
-        ["api", "members", id_str, "insurance", iid_str] ->
-          case int.parse(id_str), int.parse(iid_str) {
-            Ok(member_id), Ok(ins_id) ->
-              case req.method {
-                http.Put ->
-                  members.handle_update_insurance(
-                    req,
-                    members_ctx,
-                    member_id,
-                    ins_id,
-                  )
-                http.Delete ->
-                  members.handle_delete_insurance(
-                    req,
-                    members_ctx,
-                    member_id,
-                    ins_id,
-                  )
-                _ -> not_found
-              }
-            _, _ -> not_found
-          }
+      ["api", "members", id_str, "insurance", iid_str] ->
+        case int.parse(id_str), int.parse(iid_str) {
+          Ok(member_id), Ok(ins_id) ->
+            case req.method {
+              http.Put ->
+                members.handle_update_insurance(
+                  req,
+                  members_ctx,
+                  member_id,
+                  ins_id,
+                )
+              http.Delete ->
+                members.handle_delete_insurance(
+                  req,
+                  members_ctx,
+                  member_id,
+                  ins_id,
+                )
+              _ -> not_found
+            }
+          _, _ -> not_found
+        }
 
-        ["api", "members", id_str, "providers"] ->
-          case int.parse(id_str) {
-            Error(_) -> not_found
-            Ok(member_id) ->
-              case req.method {
-                http.Post ->
-                  members.handle_create_provider(req, members_ctx, member_id)
-                _ -> not_found
-              }
-          }
+      ["api", "members", id_str, "providers"] ->
+        case int.parse(id_str) {
+          Error(_) -> not_found
+          Ok(member_id) ->
+            case req.method {
+              http.Post ->
+                members.handle_create_provider(req, members_ctx, member_id)
+              _ -> not_found
+            }
+        }
 
-        ["api", "members", id_str, "providers", pid_str] ->
-          case int.parse(id_str), int.parse(pid_str) {
-            Ok(member_id), Ok(prov_id) ->
-              case req.method {
-                http.Put ->
-                  members.handle_update_provider(
-                    req,
-                    members_ctx,
-                    member_id,
-                    prov_id,
-                  )
-                http.Delete ->
-                  members.handle_delete_provider(
-                    req,
-                    members_ctx,
-                    member_id,
-                    prov_id,
-                  )
-                _ -> not_found
-              }
-            _, _ -> not_found
-          }
+      ["api", "members", id_str, "providers", pid_str] ->
+        case int.parse(id_str), int.parse(pid_str) {
+          Ok(member_id), Ok(prov_id) ->
+            case req.method {
+              http.Put ->
+                members.handle_update_provider(
+                  req,
+                  members_ctx,
+                  member_id,
+                  prov_id,
+                )
+              http.Delete ->
+                members.handle_delete_provider(
+                  req,
+                  members_ctx,
+                  member_id,
+                  prov_id,
+                )
+              _ -> not_found
+            }
+          _, _ -> not_found
+        }
 
-        ["api", "members", id_str, "emergency_contacts"] ->
-          case int.parse(id_str) {
-            Error(_) -> not_found
-            Ok(member_id) ->
-              case req.method {
-                http.Post ->
-                  members.handle_create_emergency_contact(
-                    req,
-                    members_ctx,
-                    member_id,
-                  )
-                _ -> not_found
-              }
-          }
+      ["api", "members", id_str, "emergency_contacts"] ->
+        case int.parse(id_str) {
+          Error(_) -> not_found
+          Ok(member_id) ->
+            case req.method {
+              http.Post ->
+                members.handle_create_emergency_contact(
+                  req,
+                  members_ctx,
+                  member_id,
+                )
+              _ -> not_found
+            }
+        }
 
-        ["api", "members", id_str, "emergency_contacts", cid_str] ->
-          case int.parse(id_str), int.parse(cid_str) {
-            Ok(member_id), Ok(contact_id) ->
-              case req.method {
-                http.Put ->
-                  members.handle_update_emergency_contact(
-                    req,
-                    members_ctx,
-                    member_id,
-                    contact_id,
-                  )
-                http.Delete ->
-                  members.handle_delete_emergency_contact(
-                    req,
-                    members_ctx,
-                    member_id,
-                    contact_id,
-                  )
-                _ -> not_found
-              }
-            _, _ -> not_found
-          }
+      ["api", "members", id_str, "emergency_contacts", cid_str] ->
+        case int.parse(id_str), int.parse(cid_str) {
+          Ok(member_id), Ok(contact_id) ->
+            case req.method {
+              http.Put ->
+                members.handle_update_emergency_contact(
+                  req,
+                  members_ctx,
+                  member_id,
+                  contact_id,
+                )
+              http.Delete ->
+                members.handle_delete_emergency_contact(
+                  req,
+                  members_ctx,
+                  member_id,
+                  contact_id,
+                )
+              _ -> not_found
+            }
+          _, _ -> not_found
+        }
 
-        ["api", "members", id_str, "documents"] ->
-          case int.parse(id_str) {
-            Error(_) -> not_found
-            Ok(member_id) ->
-              case req.method {
-                http.Post ->
-                  members.handle_create_document(req, members_ctx, member_id)
-                _ -> not_found
-              }
-          }
+      ["api", "members", id_str, "documents"] ->
+        case int.parse(id_str) {
+          Error(_) -> not_found
+          Ok(member_id) ->
+            case req.method {
+              http.Post ->
+                members.handle_create_document(req, members_ctx, member_id)
+              _ -> not_found
+            }
+        }
 
-        ["api", "members", id_str, "documents", did_str] ->
-          case int.parse(id_str), int.parse(did_str) {
-            Ok(member_id), Ok(doc_id) ->
-              case req.method {
-                http.Put ->
-                  members.handle_update_document(
-                    req,
-                    members_ctx,
-                    member_id,
-                    doc_id,
-                  )
-                http.Delete ->
-                  members.handle_delete_document(
-                    req,
-                    members_ctx,
-                    member_id,
-                    doc_id,
-                  )
-                _ -> not_found
-              }
-            _, _ -> not_found
-          }
+      ["api", "members", id_str, "documents", did_str] ->
+        case int.parse(id_str), int.parse(did_str) {
+          Ok(member_id), Ok(doc_id) ->
+            case req.method {
+              http.Put ->
+                members.handle_update_document(
+                  req,
+                  members_ctx,
+                  member_id,
+                  doc_id,
+                )
+              http.Delete ->
+                members.handle_delete_document(
+                  req,
+                  members_ctx,
+                  member_id,
+                  doc_id,
+                )
+              _ -> not_found
+            }
+          _, _ -> not_found
+        }
 
-        // SPA fallback — serve index.html for all non-static routes
-        // so the Lustre router can handle /sign-in, /sign-up, /home, etc.
-        _ ->
-          response.new(200)
-          |> response.set_header("content-type", "text/html; charset=utf-8")
-          |> response.set_body(mist.Bytes(bytes_tree.from_string(index_html)))
-      }
+      // SPA fallback — serve index.html for all non-static routes
+      // so the Lustre router can handle /sign-in, /sign-up, /home, etc.
+      _ ->
+        response.new(200)
+        |> response.set_header("content-type", "text/html; charset=utf-8")
+        |> response.set_body(mist.Bytes(bytes_tree.from_string(index_html)))
     }
-    |> mist.new
+  }
+
+  let assert Ok(_) =
+    mist.new(fn(req) { log_request(handler, req) })
     |> mist.port(cfg.port)
     |> mist.start
 
